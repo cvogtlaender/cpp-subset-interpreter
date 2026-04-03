@@ -227,7 +227,7 @@ CHAR_LIT : '\'' (ESCAPE_SEQ | ~['\\\r\n]) '\'' ;
 STRING_LIT : '"' (ESCAPE_SEQ | ~["\\\r\n])* '"' ;
 
 // Supported escape sequences: \n \t \r \\ \' \" \0
-fragment ESCAPE_SEQ : '\\' [ntr\\'\"0] ;
+fragment ESCAPE_SEQ : '\\' [ntr\\'"0] ;
 
 // Multi-character operators (must come before their single-character prefixes)
 AND : '&&' ;
