@@ -1,0 +1,26 @@
+plugins {
+    id 'java'
+    id 'antlr'
+}
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_21
+    targetCompatibility = JavaVersion.VERSION_21
+}
+
+dependencies {
+    antlr 'org.antlr:antlr4:4.13.2'
+    implementation 'org.antlr:antlr4-runtime:4.13.2'
+}
+
+generateGrammarSource {
+    arguments += ['-visitor', '-no-listener']
+}
+
+sourceSets {
+    main {
+        antlr {
+            srcDirs = ['src/main/antlr4']
+        }
+    }
+}

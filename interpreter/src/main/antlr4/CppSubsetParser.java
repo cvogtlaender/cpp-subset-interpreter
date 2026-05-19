@@ -1,4 +1,4 @@
-// Generated from ./CppSubset.g4 by ANTLR 4.13.2
+// Generated from ./interpreter/src/main/antlr4/CppSubset.g4 by ANTLR 4.13.2
 import org.antlr.v4.runtime.atn.*;
 import org.antlr.v4.runtime.dfa.DFA;
 import org.antlr.v4.runtime.*;
@@ -129,12 +129,9 @@ public class CppSubsetParser extends Parser {
 		}
 		@Override public int getRuleIndex() { return RULE_program; }
 		@Override
-		public void enterRule(ParseTreeListener listener) {
-			if ( listener instanceof CppSubsetListener ) ((CppSubsetListener)listener).enterProgram(this);
-		}
-		@Override
-		public void exitRule(ParseTreeListener listener) {
-			if ( listener instanceof CppSubsetListener ) ((CppSubsetListener)listener).exitProgram(this);
+		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
+			if ( visitor instanceof CppSubsetVisitor ) return ((CppSubsetVisitor<? extends T>)visitor).visitProgram(this);
+			else return visitor.visitChildren(this);
 		}
 	}
 
@@ -187,12 +184,9 @@ public class CppSubsetParser extends Parser {
 		}
 		@Override public int getRuleIndex() { return RULE_topLevelDecl; }
 		@Override
-		public void enterRule(ParseTreeListener listener) {
-			if ( listener instanceof CppSubsetListener ) ((CppSubsetListener)listener).enterTopLevelDecl(this);
-		}
-		@Override
-		public void exitRule(ParseTreeListener listener) {
-			if ( listener instanceof CppSubsetListener ) ((CppSubsetListener)listener).exitTopLevelDecl(this);
+		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
+			if ( visitor instanceof CppSubsetVisitor ) return ((CppSubsetVisitor<? extends T>)visitor).visitTopLevelDecl(this);
+			else return visitor.visitChildren(this);
 		}
 	}
 
@@ -256,12 +250,9 @@ public class CppSubsetParser extends Parser {
 		}
 		@Override public int getRuleIndex() { return RULE_functionDecl; }
 		@Override
-		public void enterRule(ParseTreeListener listener) {
-			if ( listener instanceof CppSubsetListener ) ((CppSubsetListener)listener).enterFunctionDecl(this);
-		}
-		@Override
-		public void exitRule(ParseTreeListener listener) {
-			if ( listener instanceof CppSubsetListener ) ((CppSubsetListener)listener).exitFunctionDecl(this);
+		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
+			if ( visitor instanceof CppSubsetVisitor ) return ((CppSubsetVisitor<? extends T>)visitor).visitFunctionDecl(this);
+			else return visitor.visitChildren(this);
 		}
 	}
 
@@ -322,12 +313,9 @@ public class CppSubsetParser extends Parser {
 		}
 		@Override public int getRuleIndex() { return RULE_paramList; }
 		@Override
-		public void enterRule(ParseTreeListener listener) {
-			if ( listener instanceof CppSubsetListener ) ((CppSubsetListener)listener).enterParamList(this);
-		}
-		@Override
-		public void exitRule(ParseTreeListener listener) {
-			if ( listener instanceof CppSubsetListener ) ((CppSubsetListener)listener).exitParamList(this);
+		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
+			if ( visitor instanceof CppSubsetVisitor ) return ((CppSubsetVisitor<? extends T>)visitor).visitParamList(this);
+			else return visitor.visitChildren(this);
 		}
 	}
 
@@ -380,12 +368,9 @@ public class CppSubsetParser extends Parser {
 		}
 		@Override public int getRuleIndex() { return RULE_param; }
 		@Override
-		public void enterRule(ParseTreeListener listener) {
-			if ( listener instanceof CppSubsetListener ) ((CppSubsetListener)listener).enterParam(this);
-		}
-		@Override
-		public void exitRule(ParseTreeListener listener) {
-			if ( listener instanceof CppSubsetListener ) ((CppSubsetListener)listener).exitParam(this);
+		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
+			if ( visitor instanceof CppSubsetVisitor ) return ((CppSubsetVisitor<? extends T>)visitor).visitParam(this);
+			else return visitor.visitChildren(this);
 		}
 	}
 
@@ -441,12 +426,9 @@ public class CppSubsetParser extends Parser {
 		}
 		@Override public int getRuleIndex() { return RULE_classDecl; }
 		@Override
-		public void enterRule(ParseTreeListener listener) {
-			if ( listener instanceof CppSubsetListener ) ((CppSubsetListener)listener).enterClassDecl(this);
-		}
-		@Override
-		public void exitRule(ParseTreeListener listener) {
-			if ( listener instanceof CppSubsetListener ) ((CppSubsetListener)listener).exitClassDecl(this);
+		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
+			if ( visitor instanceof CppSubsetVisitor ) return ((CppSubsetVisitor<? extends T>)visitor).visitClassDecl(this);
+			else return visitor.visitChildren(this);
 		}
 	}
 
@@ -528,12 +510,9 @@ public class CppSubsetParser extends Parser {
 		}
 		@Override public int getRuleIndex() { return RULE_memberDecl; }
 		@Override
-		public void enterRule(ParseTreeListener listener) {
-			if ( listener instanceof CppSubsetListener ) ((CppSubsetListener)listener).enterMemberDecl(this);
-		}
-		@Override
-		public void exitRule(ParseTreeListener listener) {
-			if ( listener instanceof CppSubsetListener ) ((CppSubsetListener)listener).exitMemberDecl(this);
+		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
+			if ( visitor instanceof CppSubsetVisitor ) return ((CppSubsetVisitor<? extends T>)visitor).visitMemberDecl(this);
+			else return visitor.visitChildren(this);
 		}
 	}
 
@@ -590,12 +569,9 @@ public class CppSubsetParser extends Parser {
 		}
 		@Override public int getRuleIndex() { return RULE_fieldDecl; }
 		@Override
-		public void enterRule(ParseTreeListener listener) {
-			if ( listener instanceof CppSubsetListener ) ((CppSubsetListener)listener).enterFieldDecl(this);
-		}
-		@Override
-		public void exitRule(ParseTreeListener listener) {
-			if ( listener instanceof CppSubsetListener ) ((CppSubsetListener)listener).exitFieldDecl(this);
+		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
+			if ( visitor instanceof CppSubsetVisitor ) return ((CppSubsetVisitor<? extends T>)visitor).visitFieldDecl(this);
+			else return visitor.visitChildren(this);
 		}
 	}
 
@@ -644,12 +620,9 @@ public class CppSubsetParser extends Parser {
 		}
 		@Override public int getRuleIndex() { return RULE_methodDecl; }
 		@Override
-		public void enterRule(ParseTreeListener listener) {
-			if ( listener instanceof CppSubsetListener ) ((CppSubsetListener)listener).enterMethodDecl(this);
-		}
-		@Override
-		public void exitRule(ParseTreeListener listener) {
-			if ( listener instanceof CppSubsetListener ) ((CppSubsetListener)listener).exitMethodDecl(this);
+		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
+			if ( visitor instanceof CppSubsetVisitor ) return ((CppSubsetVisitor<? extends T>)visitor).visitMethodDecl(this);
+			else return visitor.visitChildren(this);
 		}
 	}
 
@@ -719,12 +692,9 @@ public class CppSubsetParser extends Parser {
 		}
 		@Override public int getRuleIndex() { return RULE_constructorDecl; }
 		@Override
-		public void enterRule(ParseTreeListener listener) {
-			if ( listener instanceof CppSubsetListener ) ((CppSubsetListener)listener).enterConstructorDecl(this);
-		}
-		@Override
-		public void exitRule(ParseTreeListener listener) {
-			if ( listener instanceof CppSubsetListener ) ((CppSubsetListener)listener).exitConstructorDecl(this);
+		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
+			if ( visitor instanceof CppSubsetVisitor ) return ((CppSubsetVisitor<? extends T>)visitor).visitConstructorDecl(this);
+			else return visitor.visitChildren(this);
 		}
 	}
 
@@ -779,12 +749,9 @@ public class CppSubsetParser extends Parser {
 		}
 		@Override public int getRuleIndex() { return RULE_baseType; }
 		@Override
-		public void enterRule(ParseTreeListener listener) {
-			if ( listener instanceof CppSubsetListener ) ((CppSubsetListener)listener).enterBaseType(this);
-		}
-		@Override
-		public void exitRule(ParseTreeListener listener) {
-			if ( listener instanceof CppSubsetListener ) ((CppSubsetListener)listener).exitBaseType(this);
+		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
+			if ( visitor instanceof CppSubsetVisitor ) return ((CppSubsetVisitor<? extends T>)visitor).visitBaseType(this);
+			else return visitor.visitChildren(this);
 		}
 	}
 
@@ -829,12 +796,9 @@ public class CppSubsetParser extends Parser {
 		}
 		@Override public int getRuleIndex() { return RULE_typeRef; }
 		@Override
-		public void enterRule(ParseTreeListener listener) {
-			if ( listener instanceof CppSubsetListener ) ((CppSubsetListener)listener).enterTypeRef(this);
-		}
-		@Override
-		public void exitRule(ParseTreeListener listener) {
-			if ( listener instanceof CppSubsetListener ) ((CppSubsetListener)listener).exitTypeRef(this);
+		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
+			if ( visitor instanceof CppSubsetVisitor ) return ((CppSubsetVisitor<? extends T>)visitor).visitTypeRef(this);
+			else return visitor.visitChildren(this);
 		}
 	}
 
@@ -880,12 +844,9 @@ public class CppSubsetParser extends Parser {
 		}
 		@Override public int getRuleIndex() { return RULE_returnType; }
 		@Override
-		public void enterRule(ParseTreeListener listener) {
-			if ( listener instanceof CppSubsetListener ) ((CppSubsetListener)listener).enterReturnType(this);
-		}
-		@Override
-		public void exitRule(ParseTreeListener listener) {
-			if ( listener instanceof CppSubsetListener ) ((CppSubsetListener)listener).exitReturnType(this);
+		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
+			if ( visitor instanceof CppSubsetVisitor ) return ((CppSubsetVisitor<? extends T>)visitor).visitReturnType(this);
+			else return visitor.visitChildren(this);
 		}
 	}
 
@@ -925,12 +886,9 @@ public class CppSubsetParser extends Parser {
 		}
 		@Override public int getRuleIndex() { return RULE_block; }
 		@Override
-		public void enterRule(ParseTreeListener listener) {
-			if ( listener instanceof CppSubsetListener ) ((CppSubsetListener)listener).enterBlock(this);
-		}
-		@Override
-		public void exitRule(ParseTreeListener listener) {
-			if ( listener instanceof CppSubsetListener ) ((CppSubsetListener)listener).exitBlock(this);
+		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
+			if ( visitor instanceof CppSubsetVisitor ) return ((CppSubsetVisitor<? extends T>)visitor).visitBlock(this);
+			else return visitor.visitChildren(this);
 		}
 	}
 
@@ -997,12 +955,9 @@ public class CppSubsetParser extends Parser {
 		}
 		@Override public int getRuleIndex() { return RULE_statement; }
 		@Override
-		public void enterRule(ParseTreeListener listener) {
-			if ( listener instanceof CppSubsetListener ) ((CppSubsetListener)listener).enterStatement(this);
-		}
-		@Override
-		public void exitRule(ParseTreeListener listener) {
-			if ( listener instanceof CppSubsetListener ) ((CppSubsetListener)listener).exitStatement(this);
+		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
+			if ( visitor instanceof CppSubsetVisitor ) return ((CppSubsetVisitor<? extends T>)visitor).visitStatement(this);
+			else return visitor.visitChildren(this);
 		}
 	}
 
@@ -1084,12 +1039,9 @@ public class CppSubsetParser extends Parser {
 		}
 		@Override public int getRuleIndex() { return RULE_varDecl; }
 		@Override
-		public void enterRule(ParseTreeListener listener) {
-			if ( listener instanceof CppSubsetListener ) ((CppSubsetListener)listener).enterVarDecl(this);
-		}
-		@Override
-		public void exitRule(ParseTreeListener listener) {
-			if ( listener instanceof CppSubsetListener ) ((CppSubsetListener)listener).exitVarDecl(this);
+		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
+			if ( visitor instanceof CppSubsetVisitor ) return ((CppSubsetVisitor<? extends T>)visitor).visitVarDecl(this);
+			else return visitor.visitChildren(this);
 		}
 	}
 
@@ -1142,12 +1094,9 @@ public class CppSubsetParser extends Parser {
 		}
 		@Override public int getRuleIndex() { return RULE_exprStmt; }
 		@Override
-		public void enterRule(ParseTreeListener listener) {
-			if ( listener instanceof CppSubsetListener ) ((CppSubsetListener)listener).enterExprStmt(this);
-		}
-		@Override
-		public void exitRule(ParseTreeListener listener) {
-			if ( listener instanceof CppSubsetListener ) ((CppSubsetListener)listener).exitExprStmt(this);
+		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
+			if ( visitor instanceof CppSubsetVisitor ) return ((CppSubsetVisitor<? extends T>)visitor).visitExprStmt(this);
+			else return visitor.visitChildren(this);
 		}
 	}
 
@@ -1194,12 +1143,9 @@ public class CppSubsetParser extends Parser {
 		}
 		@Override public int getRuleIndex() { return RULE_ifStmt; }
 		@Override
-		public void enterRule(ParseTreeListener listener) {
-			if ( listener instanceof CppSubsetListener ) ((CppSubsetListener)listener).enterIfStmt(this);
-		}
-		@Override
-		public void exitRule(ParseTreeListener listener) {
-			if ( listener instanceof CppSubsetListener ) ((CppSubsetListener)listener).exitIfStmt(this);
+		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
+			if ( visitor instanceof CppSubsetVisitor ) return ((CppSubsetVisitor<? extends T>)visitor).visitIfStmt(this);
+			else return visitor.visitChildren(this);
 		}
 	}
 
@@ -1260,12 +1206,9 @@ public class CppSubsetParser extends Parser {
 		}
 		@Override public int getRuleIndex() { return RULE_whileStmt; }
 		@Override
-		public void enterRule(ParseTreeListener listener) {
-			if ( listener instanceof CppSubsetListener ) ((CppSubsetListener)listener).enterWhileStmt(this);
-		}
-		@Override
-		public void exitRule(ParseTreeListener listener) {
-			if ( listener instanceof CppSubsetListener ) ((CppSubsetListener)listener).exitWhileStmt(this);
+		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
+			if ( visitor instanceof CppSubsetVisitor ) return ((CppSubsetVisitor<? extends T>)visitor).visitWhileStmt(this);
+			else return visitor.visitChildren(this);
 		}
 	}
 
@@ -1310,12 +1253,9 @@ public class CppSubsetParser extends Parser {
 		}
 		@Override public int getRuleIndex() { return RULE_returnStmt; }
 		@Override
-		public void enterRule(ParseTreeListener listener) {
-			if ( listener instanceof CppSubsetListener ) ((CppSubsetListener)listener).enterReturnStmt(this);
-		}
-		@Override
-		public void exitRule(ParseTreeListener listener) {
-			if ( listener instanceof CppSubsetListener ) ((CppSubsetListener)listener).exitReturnStmt(this);
+		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
+			if ( visitor instanceof CppSubsetVisitor ) return ((CppSubsetVisitor<? extends T>)visitor).visitReturnStmt(this);
+			else return visitor.visitChildren(this);
 		}
 	}
 
@@ -1363,12 +1303,9 @@ public class CppSubsetParser extends Parser {
 		}
 		@Override public int getRuleIndex() { return RULE_expr; }
 		@Override
-		public void enterRule(ParseTreeListener listener) {
-			if ( listener instanceof CppSubsetListener ) ((CppSubsetListener)listener).enterExpr(this);
-		}
-		@Override
-		public void exitRule(ParseTreeListener listener) {
-			if ( listener instanceof CppSubsetListener ) ((CppSubsetListener)listener).exitExpr(this);
+		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
+			if ( visitor instanceof CppSubsetVisitor ) return ((CppSubsetVisitor<? extends T>)visitor).visitExpr(this);
+			else return visitor.visitChildren(this);
 		}
 	}
 
@@ -1407,12 +1344,9 @@ public class CppSubsetParser extends Parser {
 		}
 		@Override public int getRuleIndex() { return RULE_assignment; }
 		@Override
-		public void enterRule(ParseTreeListener listener) {
-			if ( listener instanceof CppSubsetListener ) ((CppSubsetListener)listener).enterAssignment(this);
-		}
-		@Override
-		public void exitRule(ParseTreeListener listener) {
-			if ( listener instanceof CppSubsetListener ) ((CppSubsetListener)listener).exitAssignment(this);
+		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
+			if ( visitor instanceof CppSubsetVisitor ) return ((CppSubsetVisitor<? extends T>)visitor).visitAssignment(this);
+			else return visitor.visitChildren(this);
 		}
 	}
 
@@ -1467,12 +1401,9 @@ public class CppSubsetParser extends Parser {
 		}
 		@Override public int getRuleIndex() { return RULE_logicalOr; }
 		@Override
-		public void enterRule(ParseTreeListener listener) {
-			if ( listener instanceof CppSubsetListener ) ((CppSubsetListener)listener).enterLogicalOr(this);
-		}
-		@Override
-		public void exitRule(ParseTreeListener listener) {
-			if ( listener instanceof CppSubsetListener ) ((CppSubsetListener)listener).exitLogicalOr(this);
+		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
+			if ( visitor instanceof CppSubsetVisitor ) return ((CppSubsetVisitor<? extends T>)visitor).visitLogicalOr(this);
+			else return visitor.visitChildren(this);
 		}
 	}
 
@@ -1531,12 +1462,9 @@ public class CppSubsetParser extends Parser {
 		}
 		@Override public int getRuleIndex() { return RULE_logicalAnd; }
 		@Override
-		public void enterRule(ParseTreeListener listener) {
-			if ( listener instanceof CppSubsetListener ) ((CppSubsetListener)listener).enterLogicalAnd(this);
-		}
-		@Override
-		public void exitRule(ParseTreeListener listener) {
-			if ( listener instanceof CppSubsetListener ) ((CppSubsetListener)listener).exitLogicalAnd(this);
+		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
+			if ( visitor instanceof CppSubsetVisitor ) return ((CppSubsetVisitor<? extends T>)visitor).visitLogicalAnd(this);
+			else return visitor.visitChildren(this);
 		}
 	}
 
@@ -1599,12 +1527,9 @@ public class CppSubsetParser extends Parser {
 		}
 		@Override public int getRuleIndex() { return RULE_equality; }
 		@Override
-		public void enterRule(ParseTreeListener listener) {
-			if ( listener instanceof CppSubsetListener ) ((CppSubsetListener)listener).enterEquality(this);
-		}
-		@Override
-		public void exitRule(ParseTreeListener listener) {
-			if ( listener instanceof CppSubsetListener ) ((CppSubsetListener)listener).exitEquality(this);
+		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
+			if ( visitor instanceof CppSubsetVisitor ) return ((CppSubsetVisitor<? extends T>)visitor).visitEquality(this);
+			else return visitor.visitChildren(this);
 		}
 	}
 
@@ -1683,12 +1608,9 @@ public class CppSubsetParser extends Parser {
 		}
 		@Override public int getRuleIndex() { return RULE_relational; }
 		@Override
-		public void enterRule(ParseTreeListener listener) {
-			if ( listener instanceof CppSubsetListener ) ((CppSubsetListener)listener).enterRelational(this);
-		}
-		@Override
-		public void exitRule(ParseTreeListener listener) {
-			if ( listener instanceof CppSubsetListener ) ((CppSubsetListener)listener).exitRelational(this);
+		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
+			if ( visitor instanceof CppSubsetVisitor ) return ((CppSubsetVisitor<? extends T>)visitor).visitRelational(this);
+			else return visitor.visitChildren(this);
 		}
 	}
 
@@ -1759,12 +1681,9 @@ public class CppSubsetParser extends Parser {
 		}
 		@Override public int getRuleIndex() { return RULE_addSub; }
 		@Override
-		public void enterRule(ParseTreeListener listener) {
-			if ( listener instanceof CppSubsetListener ) ((CppSubsetListener)listener).enterAddSub(this);
-		}
-		@Override
-		public void exitRule(ParseTreeListener listener) {
-			if ( listener instanceof CppSubsetListener ) ((CppSubsetListener)listener).exitAddSub(this);
+		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
+			if ( visitor instanceof CppSubsetVisitor ) return ((CppSubsetVisitor<? extends T>)visitor).visitAddSub(this);
+			else return visitor.visitChildren(this);
 		}
 	}
 
@@ -1839,12 +1758,9 @@ public class CppSubsetParser extends Parser {
 		}
 		@Override public int getRuleIndex() { return RULE_mulDivMod; }
 		@Override
-		public void enterRule(ParseTreeListener listener) {
-			if ( listener instanceof CppSubsetListener ) ((CppSubsetListener)listener).enterMulDivMod(this);
-		}
-		@Override
-		public void exitRule(ParseTreeListener listener) {
-			if ( listener instanceof CppSubsetListener ) ((CppSubsetListener)listener).exitMulDivMod(this);
+		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
+			if ( visitor instanceof CppSubsetVisitor ) return ((CppSubsetVisitor<? extends T>)visitor).visitMulDivMod(this);
+			else return visitor.visitChildren(this);
 		}
 	}
 
@@ -1910,12 +1826,9 @@ public class CppSubsetParser extends Parser {
 		}
 		@Override public int getRuleIndex() { return RULE_unary; }
 		@Override
-		public void enterRule(ParseTreeListener listener) {
-			if ( listener instanceof CppSubsetListener ) ((CppSubsetListener)listener).enterUnary(this);
-		}
-		@Override
-		public void exitRule(ParseTreeListener listener) {
-			if ( listener instanceof CppSubsetListener ) ((CppSubsetListener)listener).exitUnary(this);
+		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
+			if ( visitor instanceof CppSubsetVisitor ) return ((CppSubsetVisitor<? extends T>)visitor).visitUnary(this);
+			else return visitor.visitChildren(this);
 		}
 	}
 
@@ -1990,12 +1903,9 @@ public class CppSubsetParser extends Parser {
 		}
 		@Override public int getRuleIndex() { return RULE_postfix; }
 		@Override
-		public void enterRule(ParseTreeListener listener) {
-			if ( listener instanceof CppSubsetListener ) ((CppSubsetListener)listener).enterPostfix(this);
-		}
-		@Override
-		public void exitRule(ParseTreeListener listener) {
-			if ( listener instanceof CppSubsetListener ) ((CppSubsetListener)listener).exitPostfix(this);
+		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
+			if ( visitor instanceof CppSubsetVisitor ) return ((CppSubsetVisitor<? extends T>)visitor).visitPostfix(this);
+			else return visitor.visitChildren(this);
 		}
 	}
 
@@ -2049,12 +1959,9 @@ public class CppSubsetParser extends Parser {
 		}
 		@Override public int getRuleIndex() { return RULE_postfixSuffix; }
 		@Override
-		public void enterRule(ParseTreeListener listener) {
-			if ( listener instanceof CppSubsetListener ) ((CppSubsetListener)listener).enterPostfixSuffix(this);
-		}
-		@Override
-		public void exitRule(ParseTreeListener listener) {
-			if ( listener instanceof CppSubsetListener ) ((CppSubsetListener)listener).exitPostfixSuffix(this);
+		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
+			if ( visitor instanceof CppSubsetVisitor ) return ((CppSubsetVisitor<? extends T>)visitor).visitPostfixSuffix(this);
+			else return visitor.visitChildren(this);
 		}
 	}
 
@@ -2149,12 +2056,9 @@ public class CppSubsetParser extends Parser {
 		}
 		@Override public int getRuleIndex() { return RULE_primary; }
 		@Override
-		public void enterRule(ParseTreeListener listener) {
-			if ( listener instanceof CppSubsetListener ) ((CppSubsetListener)listener).enterPrimary(this);
-		}
-		@Override
-		public void exitRule(ParseTreeListener listener) {
-			if ( listener instanceof CppSubsetListener ) ((CppSubsetListener)listener).exitPrimary(this);
+		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
+			if ( visitor instanceof CppSubsetVisitor ) return ((CppSubsetVisitor<? extends T>)visitor).visitPrimary(this);
+			else return visitor.visitChildren(this);
 		}
 	}
 
@@ -2250,12 +2154,9 @@ public class CppSubsetParser extends Parser {
 		}
 		@Override public int getRuleIndex() { return RULE_argList; }
 		@Override
-		public void enterRule(ParseTreeListener listener) {
-			if ( listener instanceof CppSubsetListener ) ((CppSubsetListener)listener).enterArgList(this);
-		}
-		@Override
-		public void exitRule(ParseTreeListener listener) {
-			if ( listener instanceof CppSubsetListener ) ((CppSubsetListener)listener).exitArgList(this);
+		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
+			if ( visitor instanceof CppSubsetVisitor ) return ((CppSubsetVisitor<? extends T>)visitor).visitArgList(this);
+			else return visitor.visitChildren(this);
 		}
 	}
 
