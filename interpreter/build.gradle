@@ -1,6 +1,7 @@
 plugins {
     id 'java'
     id 'antlr'
+    id 'application'
 }
 
 java {
@@ -15,6 +16,7 @@ dependencies {
 
 generateGrammarSource {
     arguments += ['-visitor', '-no-listener']
+    packageName = "de.cvogtlaender.interpreter"
 }
 
 sourceSets {
@@ -24,3 +26,7 @@ sourceSets {
         }
     }
 }
+
+application {
+    mainClass = 'de.cvogtlaender.interpreter.Main'
+}   
