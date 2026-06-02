@@ -1,20 +1,19 @@
-package de.cvogtlaender.interpreter.ast;
+package de.cvogtlaender.interpreter.ast.declaration;
 
 import java.util.List;
 
-import de.cvogtlaender.interpreter.ast.statement.Stmt;
-
-public class ClassDef extends Stmt {
+public class ClassDecl extends Decl {
 
   private String className;
   private String parentClassName;
 
-  private List<Parameter> fields;
-  private List<Constructor> constructors;
-  private List<MethodDef> methods;
+  private List<FieldDecl> fields;
+  private List<ConstructorDecl> constructors;
+  private List<MethodDecl> methods;
 
-  public ClassDef(String className, String parentClassName, List<Parameter> fields, List<Constructor> constructors,
-      List<MethodDef> methods) {
+  public ClassDecl(String className, String parentClassName, List<FieldDecl> fields,
+      List<ConstructorDecl> constructors,
+      List<MethodDecl> methods) {
     this.className = className;
     this.parentClassName = parentClassName;
     this.fields = fields;
@@ -30,15 +29,15 @@ public class ClassDef extends Stmt {
     return parentClassName;
   }
 
-  public List<Parameter> getFields() {
+  public List<FieldDecl> getFields() {
     return fields;
   }
 
-  public List<Constructor> getConstructors() {
+  public List<ConstructorDecl> getConstructors() {
     return constructors;
   }
 
-  public List<MethodDef> getMethods() {
+  public List<MethodDecl> getMethods() {
     return methods;
   }
 
@@ -49,8 +48,9 @@ public class ClassDef extends Stmt {
     builder.append(", \"ParentName\": \"" + this.parentClassName + "\"");
     builder.append(", \"Fields\": [");
 
-    for (Parameter field : this.fields) {
-      builder.append("\"" + field.getName() + ":" + field.getType().getName() + "\",");
+    for (FieldDecl field : this.fields) {
+      builder.append(field.toStringTree());
+      builder.append(",");
     }
 
     if (!this.fields.isEmpty()) {
@@ -59,7 +59,7 @@ public class ClassDef extends Stmt {
     builder.append("]");
     builder.append(", \"Constructors\": [");
 
-    for (Constructor constructor : this.constructors) {
+    for (ConstructorDecl constructor : this.constructors) {
       builder.append(constructor.toStringTree());
       builder.append(",");
     }
@@ -71,7 +71,7 @@ public class ClassDef extends Stmt {
     builder.append("]");
     builder.append(", \"Methods\": [");
 
-    for (MethodDef method : this.methods) {
+    for (MethodDecl method : this.methods) {
       builder.append(method.toStringTree());
       builder.append(",");
     }

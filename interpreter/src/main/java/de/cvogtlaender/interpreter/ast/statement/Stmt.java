@@ -1,7 +1,7 @@
 package de.cvogtlaender.interpreter.ast.statement;
 
-import de.cvogtlaender.interpreter.ast.Node;
+import de.cvogtlaender.interpreter.ast.AstNode;
 
-public abstract class Stmt extends Node {
+public abstract class Stmt extends AstNode {
 
 }

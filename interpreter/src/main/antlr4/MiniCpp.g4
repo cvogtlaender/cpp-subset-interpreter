@@ -16,6 +16,9 @@ type
     | Identifier
     ;
 
+// type
+//    : (baseType | Identifier) AMP?
+
 baseType
     : INT
     | BOOL
@@ -72,6 +75,8 @@ param
     : (type | typeRef) Identifier
     ;
 
+// param : type Identifier ;
+
 // STATEMENTS
 
 block
@@ -91,6 +96,10 @@ varDecl
     : type Identifier
     | (type | typeRef) Identifier ASSIGN expr
     ;
+
+// varDecl		
+//    : type Identifier 
+//      (ASSIGN expr)?
 
 ifStmt
     : IF LPAREN expr RPAREN statement

@@ -1,20 +1,20 @@
 package de.cvogtlaender.interpreter.ast.expression;
 
 public class UnaryExpr extends Expr {
-  public enum Operation {
+  public enum Operator {
     POSITIVE, NEGATE, NOT
   }
 
-  private Operation operation;
+  private Operator operator;
   private Expr expr;
 
-  public UnaryExpr(Operation operation, Expr expr) {
-    this.operation = operation;
+  public UnaryExpr(Operator operation, Expr expr) {
+    this.operator = operation;
     this.expr = expr;
   }
 
-  public Operation getOperation() {
-    return operation;
+  public Operator getOperator() {
+    return operator;
   }
 
   public Expr getExpr() {
@@ -23,8 +23,12 @@ public class UnaryExpr extends Expr {
 
   @Override
   public String toStringTree() {
-    // TODO Auto-generated method stub
-    throw new UnsupportedOperationException("Unimplemented method 'toStringTree'");
+    StringBuilder builder = new StringBuilder();
+    builder.append("\"UnarayExpr\": { \"Op\": \"" + this.operator.toString() + "\", ");
+    builder.append("\"Expr\": ");
+    builder.append(this.expr == null ? "\"null\"" : this.expr.toStringTree());
+    builder.append("}");
+    return builder.toString();
   }
 
 }

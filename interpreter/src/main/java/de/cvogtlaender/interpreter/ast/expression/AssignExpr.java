@@ -19,7 +19,12 @@ public class AssignExpr extends Expr {
 
   @Override
   public String toStringTree() {
-    // TODO Auto-generated method stub
-    throw new UnsupportedOperationException("Unimplemented method 'toStringTree'");
+    StringBuilder builder = new StringBuilder();
+    builder.append("\"AssignExpr\": { \"Target\": ");
+    builder.append(this.target == null ? "\"null\"" : this.target.toStringTree());
+    builder.append(", \"Value\": ");
+    builder.append(this.value == null ? "\"null\"" : this.value.toStringTree());
+    builder.append("}");
+    return builder.toString();
   }
 }

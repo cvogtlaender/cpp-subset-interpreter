@@ -1,12 +1,12 @@
-package de.cvogtlaender.interpreter.ast;
+package de.cvogtlaender.interpreter.ast.declaration;
 
 import de.cvogtlaender.interpreter.ast.type.Type;
 
-public class Parameter {
+public class FieldDecl extends Decl {
   private Type type;
   private String name;
 
-  public Parameter(Type type, String name) {
+  public FieldDecl(Type type, String name) {
     this.type = type;
     this.name = name;
   }
@@ -19,4 +19,8 @@ public class Parameter {
     return name;
   }
 
+  @Override
+  public String toStringTree() {
+    return "\"" + name + ":" + type.getName() + "\"";
+  }
 }

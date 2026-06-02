@@ -2,20 +2,23 @@ package de.cvogtlaender.interpreter.ast;
 
 import java.util.List;
 
-public class Program extends Node {
-  private List<FunctionDef> functions;
-  private List<ClassDef> classDefs;
+import de.cvogtlaender.interpreter.ast.declaration.ClassDecl;
+import de.cvogtlaender.interpreter.ast.declaration.FunctionDecl;
 
-  public Program(List<FunctionDef> functions, List<ClassDef> classDefs) {
+public class Program extends AstNode {
+  private List<FunctionDecl> functions;
+  private List<ClassDecl> classDefs;
+
+  public Program(List<FunctionDecl> functions, List<ClassDecl> classDefs) {
     this.functions = functions;
     this.classDefs = classDefs;
   }
 
-  public List<FunctionDef> getFunctions() {
+  public List<FunctionDecl> getFunctions() {
     return functions;
   }
 
-  public List<ClassDef> getClassDefs() {
+  public List<ClassDecl> getClassDefs() {
     return classDefs;
   }
 
@@ -24,12 +27,12 @@ public class Program extends Node {
     StringBuilder builder = new StringBuilder();
     builder.append("{");
 
-    for (ClassDef classDef : this.classDefs) {
+    for (ClassDecl classDef : this.classDefs) {
       builder.append(classDef.toStringTree());
       builder.append(",");
     }
 
-    for (FunctionDef func : this.functions) {
+    for (FunctionDecl func : this.functions) {
       builder.append(func.toStringTree());
       builder.append(",");
     }

@@ -1,46 +1,25 @@
 package de.cvogtlaender.interpreter.ast.statement;
 
-import de.cvogtlaender.interpreter.ast.expression.Expr;
-import de.cvogtlaender.interpreter.ast.type.Type;
+import de.cvogtlaender.interpreter.ast.declaration.VariableDecl;
 
 public class VariableStmt extends Stmt {
-  private Type type;
-  private String name;
-  private Expr value;
 
-  public VariableStmt(Type type, String name, Expr value) {
-    this.type = type;
-    this.name = name;
-    this.value = value;
+  private VariableDecl variableDecl;
+
+  public VariableStmt(VariableDecl variableDecl) {
+    this.variableDecl = variableDecl;
   }
 
-  public VariableStmt(Type type, String name) {
-    this.type = type;
-    this.name = name;
-  }
-
-  public Type getType() {
-    return type;
-  }
-
-  public String getName() {
-    return name;
-  }
-
-  public Expr getValue() {
-    return value;
+  public VariableDecl getVariableDecl() {
+    return variableDecl;
   }
 
   @Override
   public String toStringTree() {
     StringBuilder builder = new StringBuilder();
-    builder.append("\"VarStmt\": {  \"Type\": \"");
-    builder.append(type.getName() + "\"");
-    builder.append(", \"Name\": \"" + this.name + "\"");
-    builder.append(", \"Value\": ");
-    builder.append(value == null ? "\"null\"" : value.toStringTree());
+    builder.append("\"VarStmt\": {");
+    builder.append(variableDecl.toStringTree());
     builder.append("}");
     return builder.toString();
   }
-
 }
