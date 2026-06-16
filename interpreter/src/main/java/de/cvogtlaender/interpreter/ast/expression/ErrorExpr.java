@@ -1,5 +1,7 @@
 package de.cvogtlaender.interpreter.ast.expression;
 
+import de.cvogtlaender.interpreter.visitor.AstVisitor;
+
 public class ErrorExpr extends Expr {
 
   private String message;
@@ -17,4 +19,8 @@ public class ErrorExpr extends Expr {
     return "\"ErrorExpr\": " + message;
   }
 
+  @Override
+  public <T> T accept(AstVisitor<T> visitor) {
+    return visitor.visitErrorExpr(this);
+  }
 }

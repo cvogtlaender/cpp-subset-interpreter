@@ -2,6 +2,8 @@ package de.cvogtlaender.interpreter.ast.declaration;
 
 import java.util.List;
 
+import de.cvogtlaender.interpreter.visitor.AstVisitor;
+
 public class ClassDecl extends Decl {
 
   private String className;
@@ -84,5 +86,10 @@ public class ClassDecl extends Decl {
     builder.append("}");
 
     return builder.toString();
+  }
+
+  @Override
+  public <T> T accept(AstVisitor<T> visitor) {
+    return visitor.visitClassDecl(this);
   }
 }

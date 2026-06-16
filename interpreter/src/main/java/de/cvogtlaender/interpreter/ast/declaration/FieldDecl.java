@@ -1,6 +1,7 @@
 package de.cvogtlaender.interpreter.ast.declaration;
 
 import de.cvogtlaender.interpreter.ast.type.Type;
+import de.cvogtlaender.interpreter.visitor.AstVisitor;
 
 public class FieldDecl extends Decl {
   private Type type;
@@ -22,5 +23,10 @@ public class FieldDecl extends Decl {
   @Override
   public String toStringTree() {
     return "\"" + name + ":" + type.getName() + "\"";
+  }
+
+  @Override
+  public <T> T accept(AstVisitor<T> visitor) {
+    return visitor.visitFieldDecl(this);
   }
 }

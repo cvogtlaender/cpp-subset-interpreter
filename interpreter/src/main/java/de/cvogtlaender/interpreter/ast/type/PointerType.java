@@ -1,5 +1,7 @@
 package de.cvogtlaender.interpreter.ast.type;
 
+import de.cvogtlaender.interpreter.visitor.AstVisitor;
+
 public class PointerType extends Type {
   private Type pointeeType;
 
@@ -16,4 +18,8 @@ public class PointerType extends Type {
     return this.pointeeType.getName() + "*";
   }
 
+  @Override
+  public <T> T accept(AstVisitor<T> visitor) {
+    return visitor.visitPointerType(this);
+  }
 }

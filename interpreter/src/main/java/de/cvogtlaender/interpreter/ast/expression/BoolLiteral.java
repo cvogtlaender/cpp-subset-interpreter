@@ -1,5 +1,7 @@
 package de.cvogtlaender.interpreter.ast.expression;
 
+import de.cvogtlaender.interpreter.visitor.AstVisitor;
+
 public class BoolLiteral extends LiteralExpr {
 
   private Boolean value;
@@ -15,5 +17,10 @@ public class BoolLiteral extends LiteralExpr {
   @Override
   public String toStringTree() {
     return "\"BoolLit\": " + value.toString();
+  }
+
+  @Override
+  public <T> T accept(AstVisitor<T> visitor) {
+    return visitor.visitBoolLiteral(this);
   }
 }

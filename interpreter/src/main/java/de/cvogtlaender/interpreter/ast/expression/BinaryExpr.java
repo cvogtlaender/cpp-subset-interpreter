@@ -1,5 +1,7 @@
 package de.cvogtlaender.interpreter.ast.expression;
 
+import de.cvogtlaender.interpreter.visitor.AstVisitor;
+
 public class BinaryExpr extends Expr {
   public enum Operator {
     ADD, SUB, MUL, DIV, MOD,
@@ -40,5 +42,10 @@ public class BinaryExpr extends Expr {
     builder.append(this.rightHandSide == null ? "\"null\"" : this.rightHandSide.toStringTree());
     builder.append("}");
     return builder.toString();
+  }
+
+  @Override
+  public <T> T accept(AstVisitor<T> visitor) {
+    return visitor.visitBinaryExpr(this);
   }
 }

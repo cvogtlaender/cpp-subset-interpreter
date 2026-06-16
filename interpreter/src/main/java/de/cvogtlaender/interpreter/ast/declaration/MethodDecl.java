@@ -4,6 +4,7 @@ import java.util.List;
 
 import de.cvogtlaender.interpreter.ast.statement.BlockStmt;
 import de.cvogtlaender.interpreter.ast.type.Type;
+import de.cvogtlaender.interpreter.visitor.AstVisitor;
 
 public class MethodDecl extends Decl {
 
@@ -62,5 +63,10 @@ public class MethodDecl extends Decl {
     builder.append("}");
 
     return builder.toString();
+  }
+
+  @Override
+  public <T> T accept(AstVisitor<T> visitor) {
+    return visitor.visitMethodDecl(this);
   }
 }

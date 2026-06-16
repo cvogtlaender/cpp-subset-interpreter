@@ -1,5 +1,7 @@
 package de.cvogtlaender.interpreter.ast.expression;
 
+import de.cvogtlaender.interpreter.visitor.AstVisitor;
+
 public class AssignExpr extends Expr {
   private Expr target;
   private Expr value;
@@ -26,5 +28,10 @@ public class AssignExpr extends Expr {
     builder.append(this.value == null ? "\"null\"" : this.value.toStringTree());
     builder.append("}");
     return builder.toString();
+  }
+
+  @Override
+  public <T> T accept(AstVisitor<T> visitor) {
+    return visitor.visitAssignExpr(this);
   }
 }

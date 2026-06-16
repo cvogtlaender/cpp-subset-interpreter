@@ -1,5 +1,7 @@
 package de.cvogtlaender.interpreter.ast.expression;
 
+import de.cvogtlaender.interpreter.visitor.AstVisitor;
+
 public class IntLiteral extends LiteralExpr {
 
   private Integer value;
@@ -17,4 +19,8 @@ public class IntLiteral extends LiteralExpr {
     return "\"IntLit\": " + value;
   }
 
+  @Override
+  public <T> T accept(AstVisitor<T> visitor) {
+    return visitor.visitIntLiteral(this);
+  }
 }

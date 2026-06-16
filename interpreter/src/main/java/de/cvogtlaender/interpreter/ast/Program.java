@@ -4,6 +4,7 @@ import java.util.List;
 
 import de.cvogtlaender.interpreter.ast.declaration.ClassDecl;
 import de.cvogtlaender.interpreter.ast.declaration.FunctionDecl;
+import de.cvogtlaender.interpreter.visitor.AstVisitor;
 
 public class Program extends AstNode {
   private List<FunctionDecl> functions;
@@ -44,5 +45,10 @@ public class Program extends AstNode {
     builder.append("}");
 
     return builder.toString();
+  }
+
+  @Override
+  public <T> T accept(AstVisitor<T> visitor) {
+    return visitor.visitProgram(this);
   }
 }

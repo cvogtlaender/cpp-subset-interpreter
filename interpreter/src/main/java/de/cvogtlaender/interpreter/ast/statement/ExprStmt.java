@@ -1,6 +1,7 @@
 package de.cvogtlaender.interpreter.ast.statement;
 
 import de.cvogtlaender.interpreter.ast.expression.Expr;
+import de.cvogtlaender.interpreter.visitor.AstVisitor;
 
 public class ExprStmt extends Stmt {
   private Expr expression;
@@ -18,4 +19,8 @@ public class ExprStmt extends Stmt {
     return "\"ExprStmt\": { \"Expr\": " + (expression == null ? "\"null\"" : this.expression.toStringTree()) + "}";
   }
 
+  @Override
+  public <T> T accept(AstVisitor<T> visitor) {
+    return visitor.visitExprStmt(this);
+  }
 }

@@ -1,6 +1,7 @@
 package de.cvogtlaender.interpreter.ast.statement;
 
 import de.cvogtlaender.interpreter.ast.declaration.VariableDecl;
+import de.cvogtlaender.interpreter.visitor.AstVisitor;
 
 public class VariableStmt extends Stmt {
 
@@ -21,5 +22,10 @@ public class VariableStmt extends Stmt {
     builder.append(variableDecl.toStringTree());
     builder.append("}");
     return builder.toString();
+  }
+
+  @Override
+  public <T> T accept(AstVisitor<T> visitor) {
+    return visitor.visitVariableStmt(this);
   }
 }

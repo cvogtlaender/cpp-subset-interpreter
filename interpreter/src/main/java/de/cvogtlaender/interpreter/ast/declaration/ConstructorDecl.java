@@ -3,6 +3,7 @@ package de.cvogtlaender.interpreter.ast.declaration;
 import java.util.List;
 
 import de.cvogtlaender.interpreter.ast.statement.BlockStmt;
+import de.cvogtlaender.interpreter.visitor.AstVisitor;
 
 public class ConstructorDecl extends Decl {
 
@@ -47,5 +48,10 @@ public class ConstructorDecl extends Decl {
     builder.append("}");
 
     return builder.toString();
+  }
+
+  @Override
+  public <T> T accept(AstVisitor<T> visitor) {
+    return visitor.visitConstructorDecl(this);
   }
 }

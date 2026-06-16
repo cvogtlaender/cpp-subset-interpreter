@@ -1,5 +1,7 @@
 package de.cvogtlaender.interpreter.ast.expression;
 
+import de.cvogtlaender.interpreter.visitor.AstVisitor;
+
 public class UnaryExpr extends Expr {
   public enum Operator {
     POSITIVE, NEGATE, NOT
@@ -31,4 +33,8 @@ public class UnaryExpr extends Expr {
     return builder.toString();
   }
 
+  @Override
+  public <T> T accept(AstVisitor<T> visitor) {
+    return visitor.visitUnaryExpr(this);
+  }
 }

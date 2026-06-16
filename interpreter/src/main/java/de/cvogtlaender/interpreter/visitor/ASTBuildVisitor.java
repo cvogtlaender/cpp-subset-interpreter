@@ -1,4 +1,4 @@
-package de.cvogtlaender.interpreter;
+package de.cvogtlaender.interpreter.visitor;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -33,6 +33,7 @@ import de.cvogtlaender.interpreter.ast.type.ClassType;
 import de.cvogtlaender.interpreter.ast.type.PrimitiveType;
 import de.cvogtlaender.interpreter.ast.type.ReferenceType;
 import de.cvogtlaender.interpreter.ast.type.Type;
+import de.cvogtlaender.interpreter.MiniCppBaseVisitor;
 import de.cvogtlaender.interpreter.MiniCppParser.AdditiveExprContext;
 import de.cvogtlaender.interpreter.MiniCppParser.ArgListContext;
 import de.cvogtlaender.interpreter.MiniCppParser.AssignmentExprContext;
@@ -67,7 +68,7 @@ import de.cvogtlaender.interpreter.MiniCppParser.UnaryExprContext;
 import de.cvogtlaender.interpreter.MiniCppParser.VarDeclContext;
 import de.cvogtlaender.interpreter.MiniCppParser.WhileStmtContext;
 
-public class ASTVisitor extends MiniCppBaseVisitor<Object> {
+public class ASTBuildVisitor extends MiniCppBaseVisitor<Object> {
 
   @Override
   public Object visitProgram(ProgramContext ctx) {

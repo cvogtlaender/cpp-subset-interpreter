@@ -2,6 +2,8 @@ package de.cvogtlaender.interpreter.ast.statement;
 
 import java.util.List;
 
+import de.cvogtlaender.interpreter.visitor.AstVisitor;
+
 public class BlockStmt extends Stmt {
   private List<Stmt> statements;
 
@@ -30,5 +32,10 @@ public class BlockStmt extends Stmt {
     builder.append("}");
 
     return builder.toString();
+  }
+
+  @Override
+  public <T> T accept(AstVisitor<T> visitor) {
+    return visitor.visitBlockStmt(this);
   }
 }

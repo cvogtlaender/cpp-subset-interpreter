@@ -2,6 +2,7 @@ package de.cvogtlaender.interpreter.ast.declaration;
 
 import de.cvogtlaender.interpreter.ast.expression.Expr;
 import de.cvogtlaender.interpreter.ast.type.Type;
+import de.cvogtlaender.interpreter.visitor.AstVisitor;
 
 public class VariableDecl extends Decl {
 
@@ -39,4 +40,8 @@ public class VariableDecl extends Decl {
     return builder.toString();
   }
 
+  @Override
+  public <T> T accept(AstVisitor<T> visitor) {
+    return visitor.visitVariableDecl(this);
+  }
 }

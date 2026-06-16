@@ -2,6 +2,8 @@ package de.cvogtlaender.interpreter.ast.expression;
 
 import java.util.List;
 
+import de.cvogtlaender.interpreter.visitor.AstVisitor;
+
 public class CallExpr extends Expr {
 
   private Expr callee;
@@ -41,4 +43,8 @@ public class CallExpr extends Expr {
     return builder.toString();
   }
 
+  @Override
+  public <T> T accept(AstVisitor<T> visitor) {
+    return visitor.visitCallExpr(this);
+  }
 }

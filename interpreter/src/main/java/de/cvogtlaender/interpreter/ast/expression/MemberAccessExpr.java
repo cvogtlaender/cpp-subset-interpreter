@@ -1,5 +1,7 @@
 package de.cvogtlaender.interpreter.ast.expression;
 
+import de.cvogtlaender.interpreter.visitor.AstVisitor;
+
 public class MemberAccessExpr extends Expr {
 
   private Expr obj;
@@ -28,4 +30,8 @@ public class MemberAccessExpr extends Expr {
     return builder.toString();
   }
 
+  @Override
+  public <T> T accept(AstVisitor<T> visitor) {
+    return visitor.visitMemberAccessExpr(this);
+  }
 }

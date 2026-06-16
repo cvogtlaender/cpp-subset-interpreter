@@ -1,6 +1,7 @@
 package de.cvogtlaender.interpreter.ast.statement;
 
 import de.cvogtlaender.interpreter.ast.expression.Expr;
+import de.cvogtlaender.interpreter.visitor.AstVisitor;
 
 public class IfStmt extends Stmt {
   private Expr condition;
@@ -38,4 +39,8 @@ public class IfStmt extends Stmt {
     return builder.toString();
   }
 
+  @Override
+  public <T> T accept(AstVisitor<T> visitor) {
+    return visitor.visitIfStmt(this);
+  }
 }
