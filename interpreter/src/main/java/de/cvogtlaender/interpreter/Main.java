@@ -14,7 +14,7 @@ public class Main {
   public static void main(String[] args) {
 
     try (BufferedReader br = new BufferedReader(new FileReader(
-        "C:\\Users\\gorpi\\Desktop\\features.cpp"))) {
+        "..\\features.cpp"))) {
 
       StringBuilder sb = new StringBuilder();
       String line = br.readLine();
