@@ -4,7 +4,7 @@ import de.cvogtlaender.interpreter.visitor.AstVisitor;
 
 public class UnaryExpr extends Expr {
   public enum Operator {
-    POSITIVE, NEGATE, NOT
+    POSITIVE, NEGATE, NOT, DEREF, ADDRESS_OF
   }
 
   private Operator operator;

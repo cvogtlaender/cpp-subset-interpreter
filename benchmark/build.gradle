@@ -1,0 +1,28 @@
+plugins {
+    id 'java'
+}
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_21
+    targetCompatibility = JavaVersion.VERSION_21
+}
+
+dependencies {
+    implementation project(':interpreter')
+    implementation 'org.openjdk.jmh:jmh-core:1.37'
+    annotationProcessor 'org.openjdk.jmh:jmh-generator-annprocess:1.37'
+}
+
+// ./gradlew :benchmark:jmh                      all benchmarks, short settings
+// ./gradlew :benchmark:jmh -Pjmh="Fib -f 2"     custom JMH arguments
+tasks.register('jmh', JavaExec) {
+    group = 'benchmark'
+    description = 'Runs the JMH benchmarks'
+    dependsOn classes
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'org.openjdk.jmh.Main'
+    def custom = project.findProperty('jmh')
+    args = custom ? custom.toString().split(' ').toList()
+                  : ['-f', '1', '-wi', '3', '-w', '1s', '-i', '5', '-r', '1s',
+                     '-rf', 'json', '-rff', layout.buildDirectory.file('jmh-result.json').get().asFile.path]
+}

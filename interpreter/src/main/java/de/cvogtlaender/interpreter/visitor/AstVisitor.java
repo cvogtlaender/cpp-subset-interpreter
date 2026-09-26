@@ -16,16 +16,20 @@ import de.cvogtlaender.interpreter.ast.expression.CharLiteral;
 import de.cvogtlaender.interpreter.ast.expression.ErrorExpr;
 import de.cvogtlaender.interpreter.ast.expression.IntLiteral;
 import de.cvogtlaender.interpreter.ast.expression.MemberAccessExpr;
+import de.cvogtlaender.interpreter.ast.expression.NewExpr;
+import de.cvogtlaender.interpreter.ast.expression.NullptrLiteral;
 import de.cvogtlaender.interpreter.ast.expression.StringLiteral;
 import de.cvogtlaender.interpreter.ast.expression.UnaryExpr;
 import de.cvogtlaender.interpreter.ast.expression.VarExpr;
 import de.cvogtlaender.interpreter.ast.statement.BlockStmt;
+import de.cvogtlaender.interpreter.ast.statement.DeleteStmt;
 import de.cvogtlaender.interpreter.ast.statement.ExprStmt;
 import de.cvogtlaender.interpreter.ast.statement.IfStmt;
 import de.cvogtlaender.interpreter.ast.statement.ReturnStmt;
 import de.cvogtlaender.interpreter.ast.statement.VariableStmt;
 import de.cvogtlaender.interpreter.ast.statement.WhileStmt;
 import de.cvogtlaender.interpreter.ast.type.ClassType;
+import de.cvogtlaender.interpreter.ast.type.NullptrType;
 import de.cvogtlaender.interpreter.ast.type.PointerType;
 import de.cvogtlaender.interpreter.ast.type.PrimitiveType;
 import de.cvogtlaender.interpreter.ast.type.ReferenceType;
@@ -64,6 +68,10 @@ public interface AstVisitor<T> {
 
   T visitMemberAccessExpr(MemberAccessExpr node);
 
+  T visitNewExpr(NewExpr node);
+
+  T visitNullptrLiteral(NullptrLiteral node);
+
   T visitStringLiteral(StringLiteral node);
 
   T visitUnaryExpr(UnaryExpr node);
@@ -71,6 +79,8 @@ public interface AstVisitor<T> {
   T visitVarExpr(VarExpr node);
 
   T visitBlockStmt(BlockStmt node);
+
+  T visitDeleteStmt(DeleteStmt node);
 
   T visitExprStmt(ExprStmt node);
 
@@ -83,6 +93,8 @@ public interface AstVisitor<T> {
   T visitWhileStmt(WhileStmt node);
 
   T visitClassType(ClassType node);
+
+  T visitNullptrType(NullptrType node);
 
   T visitPointerType(PointerType node);
 

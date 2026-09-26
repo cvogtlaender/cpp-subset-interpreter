@@ -11,6 +11,17 @@ public class FunctionDecl extends Decl {
   private String name;
   private List<ParameterDecl> parameters;
   private BlockStmt body;
+  private boolean builtin;
+
+  public static FunctionDecl builtin(Type returnType, String name, List<ParameterDecl> parameters) {
+    FunctionDecl f = new FunctionDecl(returnType, name, parameters, new BlockStmt(new java.util.ArrayList<>()));
+    f.builtin = true;
+    return f;
+  }
+
+  public boolean isBuiltin() {
+    return builtin;
+  }
 
   public FunctionDecl(Type returnType, String name, List<ParameterDecl> parameters, BlockStmt body) {
     this.returnType = returnType;

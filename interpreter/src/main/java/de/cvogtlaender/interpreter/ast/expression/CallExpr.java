@@ -1,5 +1,6 @@
 package de.cvogtlaender.interpreter.ast.expression;
 
+import de.cvogtlaender.interpreter.ast.declaration.Decl;
 import java.util.List;
 
 import de.cvogtlaender.interpreter.visitor.AstVisitor;
@@ -8,6 +9,30 @@ public class CallExpr extends Expr {
 
   private Expr callee;
   private List<Expr> arguments;
+
+  public enum Kind {
+    FUNCTION, METHOD, CONSTRUCTOR
+  }
+
+  private Kind kind;
+  // FunctionDecl, MethodDecl or ConstructorDecl chosen by overload resolution
+  private Decl target;
+
+  public Kind getKind() {
+    return kind;
+  }
+
+  public void setKind(Kind kind) {
+    this.kind = kind;
+  }
+
+  public Decl getTarget() {
+    return target;
+  }
+
+  public void setTarget(Decl target) {
+    this.target = target;
+  }
 
   public CallExpr(Expr callee, List<Expr> arguments) {
     this.callee = callee;

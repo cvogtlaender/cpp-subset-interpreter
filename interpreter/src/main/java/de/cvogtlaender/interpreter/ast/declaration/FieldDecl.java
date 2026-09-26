@@ -6,6 +6,15 @@ import de.cvogtlaender.interpreter.visitor.AstVisitor;
 public class FieldDecl extends Decl {
   private Type type;
   private String name;
+  private ClassDecl owner;
+
+  public ClassDecl getOwner() {
+    return owner;
+  }
+
+  public void setOwner(ClassDecl owner) {
+    this.owner = owner;
+  }
 
   public FieldDecl(Type type, String name) {
     this.type = type;

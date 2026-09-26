@@ -10,6 +10,25 @@ public class ConstructorDecl extends Decl {
   private String name;
   private List<ParameterDecl> parameters;
   private BlockStmt body;
+  private ClassDecl owner;
+
+  public ClassDecl getOwner() {
+    return owner;
+  }
+
+  public void setOwner(ClassDecl owner) {
+    this.owner = owner;
+  }
+
+  private boolean synthesized;
+
+  public boolean isSynthesized() {
+    return synthesized;
+  }
+
+  public void setSynthesized(boolean synthesized) {
+    this.synthesized = synthesized;
+  }
 
   public ConstructorDecl(String name, List<ParameterDecl> parameters, BlockStmt body) {
     this.name = name;

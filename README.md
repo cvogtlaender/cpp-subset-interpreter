@@ -30,7 +30,7 @@ Die folgenden Entscheidungen wurden gemeinsam getroffen und als Architecture Dec
 
 #### Typen und Variablen
 
-Unterstützte Basistypen sind `bool`, `int`, `char`, `string` und `void`. Escape-Sequenzen mit `\` sind erlaubt. Variablen werden per `T x;` oder `T x = expr;` deklariert. C++-Referenzen werden als `T& x = expr;` (Variable) bzw. `T& p` (Parameter) unterstützt. Referenz-Initialisierung ist obligatorisch; Zuweisung schreibt in das referenzierte Ziel (keine Neubindung). Referenz-Felder, `&`-Rückgaben und globale Variablen sind nicht erlaubt.
+Unterstützte Basistypen sind `bool`, `int`, `char`, `string` und `void`. Escape-Sequenzen mit `\` sind erlaubt. Variablen werden per `T x;` oder `T x = expr;` deklariert. C++-Referenzen werden als `T& x = expr;` (Variable) bzw. `T& p` (Parameter) unterstützt. Referenz-Initialisierung ist obligatorisch; Zuweisung schreibt in das referenzierte Ziel (keine Neubindung). Referenz-Felder, `&`-Rückgaben und globale Variablen sind nicht erlaubt. Zeiger werden als `T* p` unterstützt, auch mehrstufig (`T**`) und als Variablen, Parameter (auch `T*&`), Felder und Rückgabewerte: Adressoperator `&x`, Dereferenzierung `*p` (lesend und schreibend), Memberzugriff `p->m` bzw. `p->m()`, das Literal `nullptr`, Heap-Objekte per `new T` bzw. `new T(args)` und Freigabe per `delete p;`.
 
 #### Ausdrücke und Kontrollfluss
 
@@ -42,7 +42,7 @@ Arithmetische Operatoren (`+ - * / %`, unär `+ -`) sind auf `int` beschränkt. 
 
 #### Klassen, Vererbung und Polymorphie
 
-Klassen werden als `class A { public: ... }` definiert (alles public). Ein parameterloser Konstruktor wird synthetisiert, falls keiner angegeben ist. Einfachvererbung folgt dem Schema `class D : public B { ... }`. Bei abgeleiteten Klassen wird implizit der parameterlose Basiskonstruktor aufgerufen. Namensauflösung: lokal → eigene Members → geerbte Members → global. Zuweisung `Base b = d;` führt zum Slicing. Polymorphie erfolgt ausschließlich über Referenzen mit `virtual`-Methoden. `this` existiert nicht.
+Klassen werden als `class A { public: ... }` definiert (alles public). Ein parameterloser Konstruktor wird synthetisiert, falls keiner angegeben ist. Einfachvererbung folgt dem Schema `class D : public B { ... }`. Bei abgeleiteten Klassen wird implizit der parameterlose Basiskonstruktor aufgerufen. Namensauflösung: lokal → eigene Members → geerbte Members → global. Zuweisung `Base b = d;` führt zum Slicing. Polymorphie erfolgt über Referenzen und Zeiger mit `virtual`-Methoden. `this` existiert nicht.
 
 #### Scoping und REPL-Semantik
 
@@ -50,7 +50,7 @@ Variablen unterliegen define-before-use; Funktionen und Klassen erlauben define-
 
 #### Nicht unterstützt
 
-Pointer, Casts, Arrays, Inkrement/Dekrement, Compound-Assignments, `break`/`continue`, Mehrfachvererbung, Templates, `static`, `const`, `this`, globale Variablen, Initialisierungslisten, Destruktoren sowie reine Funktionsdeklarationen.
+Zeigerarithmetik, `void*`, Casts, Arrays, Inkrement/Dekrement, Compound-Assignments, `break`/`continue`, Mehrfachvererbung, Templates, `static`, `const`, `this`, globale Variablen, Initialisierungslisten, Destruktoren sowie reine Funktionsdeklarationen.
 
 ---
 
@@ -68,7 +68,7 @@ Quelle → ANTLR4-Lexer → Token-Stream → ANTLR4-Parser → AST → Resolver 
 
 **Resolver:** Verwendet eine Two-Pass-Strategie: Pass 1 sammelt alle Funktions- und Klassendeklarationen; Pass 2 löst alle Referenzen auf. Die Scope-Kette lautet: Block → Methoden-Scope → Klassen-Scope → Global-Scope → Sitzungs-Scope.
 
-**Interpreter:** Wertet den AST rekursiv per Visitor-Pattern aus. Jeder AST-Knoten-Typ besitzt eine eigene `visit`-Methode; der Interpreter ist eine `ASTVisitor`-Implementierung. Ein Laufzeit-Stack mit Activation Records verwaltet Funktionsaufrufe. Klasseninstanzen sind `Map<String, Value>`-Objekte (feldweise Kopie). Dynamischer Dispatch erfolgt via vtable-Lookup bei Referenz-Methodenaufrufen.
+**Interpreter:** Wertet den AST rekursiv per Visitor-Pattern aus. Jeder AST-Knoten-Typ besitzt eine eigene `visit`-Methode; der Interpreter ist eine `ASTVisitor`-Implementierung. Ein Laufzeit-Stack mit Activation Records verwaltet Funktionsaufrufe. Klasseninstanzen sind `Map<String, Value>`-Objekte (feldweise Kopie). Dynamischer Dispatch erfolgt via vtable-Lookup bei Methodenaufrufen über Referenzen und Zeiger.
 
 **REPL:** Liest beim Start eine optionale Datei ein, führt `main()` im Sitzungs-Scope aus und hält diesen offen. Bei unvollständiger Eingabe wird ein Hilfsprompt angezeigt.
 
@@ -76,7 +76,7 @@ Quelle → ANTLR4-Lexer → Token-Stream → ANTLR4-Parser → AST → Resolver 
 
 Jeder AST-Knoten erhält nach Bottom-up-Auswertung einen annotierten Typ. Bei binären Operatoren müssen beide Seiten identische Typen haben (Ausnahme: Zuweisung mit Slicing). Überladungsauflösung erfolgt per exaktem Match; Mehrdeutigkeit ist ein Fehler. Alle Return-Pfade einer Funktion müssen denselben Typ liefern.
 
-Für virtuelle Methoden erhält jede Klasse zur Laufzeit eine vtable, in Java als `Map<String, Method>` realisiert. Bei Aufruf über eine Referenz wird der tatsächliche Laufzeit-Typ nachgeschlagen (dynamischer Dispatch). Nicht-virtuelle Methoden binden statisch.
+Für virtuelle Methoden erhält jede Klasse zur Laufzeit eine vtable, in Java als `Map<String, Method>` realisiert. Bei Aufruf über eine Referenz oder einen Zeiger wird der tatsächliche Laufzeit-Typ nachgeschlagen (dynamischer Dispatch). Nicht-virtuelle Methoden binden statisch.
 
 #### LSP
 
@@ -104,6 +104,124 @@ Stellt GenAI-Funktionalitäten über REST bereit und bindet Ollama als lokalen G
 | `/refactor` | Ja | Refactoring-Vorschlag mit Begründung |
 | `/detect-bugs` | Ja | Potenzielle Laufzeit- und Logikfehler erkennen |
 | `/health` | Nein | Server-Status und Modell-Info |
+
+---
+
+## Nutzung
+
+Voraussetzung ist ein JDK 21 oder neuer.
+
+```sh
+./gradlew build                        # baut alle Module und führt alle Tests aus
+./gradlew :interpreter:installDist     # erzeugt interpreter/build/install/minicpp/bin/minicpp
+```
+
+| Befehl | Wirkung |
+|---|---|
+| `minicpp run datei.cpp` (oder `minicpp datei.cpp`) | Programm ausführen; der Exit-Code ist der Rückgabewert von `main` |
+| `minicpp check datei.cpp` | nur Syntax-, Namens- und Typprüfung |
+| `minicpp repl [datei.cpp]` | REPL, optional mit vorher geladener Datei |
+| `minicpp ast datei.cpp` | AST ausgeben |
+| `minicpp to-cpp datei.cpp` | nach Standard-C++ übersetzen (für den GCC-Vergleich) |
+
+Ohne Installation: `./gradlew :interpreter:run --args="run examples/features.cpp"` bzw. `--args="repl"`.
+
+Fehlermeldungen haben die Form `datei.cpp:3:7: error: use of undeclared identifier 'y'` (Zeile:Spalte, beide 1-basiert).
+
+### REPL
+
+```
+minicpp> int x = 6;
+minicpp> int sq(int n) {
+     ...>   return n * n;
+     ...> }
+minicpp> sq(x) + 1
+37
+```
+
+Eine Eingabe darf Klassen, Funktionen und Anweisungen enthalten; ein abschließender Ausdruck ohne `;` wird ausgewertet und ausgegeben. Unvollständige Eingaben werden mit dem Hilfsprompt `...>` fortgesetzt (`:cancel` verwirft sie). Befehle: `:vars`, `:functions`, `:classes`, `:load <datei>`, `:reset`, `:help`, `:quit`.
+
+---
+
+## Umsetzung
+
+### Kern-Interpreter (`interpreter/`)
+
+| Paket | Inhalt |
+|---|---|
+| `MiniCpp` | Fassade für die ganze Pipeline: `parseProgram`, `compile`, `run`, `execute` |
+| `visitor/ASTBuildVisitor` | Parse-Tree → AST, jeder Knoten mit Quellbereich (Zeile 1-basiert, Spalte 0-basiert) |
+| `visitor/ASTResolveVisitor` | Two-Pass-Resolver: Pass 1 sammelt Klassen/Funktionen, verknüpft Basisklassen, prüft Member; Pass 2 bindet Bezeichner (lokal → eigene Member → geerbte Member → global) |
+| `visitor/TypeCheckVisitor` | Typprüfung, Überladungsauflösung, L-Wert-Prüfung, Return-Pfade, Overrides/`virtual`, Einstiegspunkt |
+| `runtime/Interpreter` | Tree-Walking-Interpreter mit Activation Records, `Cell`s für Referenzen und Zeiger (mit Lebensdauerprüfung), Objekten mit Wertsemantik, vtables |
+| `repl/Repl` | REPL mit Sitzungs-Scope |
+| `cpp/CppExporter` | Übersetzung nach Standard-C++ |
+| `diagnostic/Diagnostic` | Fehler mit Phase (`SYNTAX`, `RESOLVE`, `TYPE`, `RUNTIME`) und Quellbereich |
+
+Präzisierungen der Sprache, wo die Anforderungen offen waren:
+
+- `print_*` gibt den Wert gefolgt von einem Zeilenumbruch aus; `bool` erscheint als `true`/`false`.
+- Variablen und Felder ohne Initialisierer erhalten Standardwerte: `0`, `false`, `'\0'`, `""`; Objekte werden mit dem parameterlosen Konstruktor erzeugt.
+- `T x(a, b);` ist für Klassentypen eine Kurzform von `T x = T(a, b);`.
+- Überladungsauflösung: zuerst exakte Treffer (inkl. `&`, Referenzparameter brauchen L-Werte); nur wenn keiner existiert, werden die Konvertierungen Derived→Base, `D*`→`B*` und `nullptr`→`T*` berücksichtigt (nicht für Referenzparameter wie `B*&`). Mehr als ein bester Kandidat ist ein Fehler.
+- Wie in C++ verdecken Member einer abgeleiteten Klasse gleichnamige Member der Basisklasse; Felder dürfen in abgeleiteten Klassen nicht erneut deklariert werden.
+- Methoden, die eine virtuelle Methode überschreiben, sind selbst virtuell. Während der Konstruktor einer Basisklasse läuft, rufen virtuelle Aufrufe deren Version auf (wie in C++).
+- Zuweisungen an Objekte kopieren feldweise und nur den Teil des statischen Zieltyps (Slicing, auch über Referenzen).
+- Zeiger: `==`/`!=` vergleichen Zeiger kompatiblen Typs (auch mit `nullptr`); es gibt keine Zeigerarithmetik und keine `<`-Vergleiche. Wie andere Werte sind Zeiger nur in `if`/`while`-Bedingungen implizit `bool` (`!p` ist ein Fehler, stattdessen `p == nullptr`). Uninitialisierte Zeiger sind `nullptr`, `new T` ohne Argumente erzeugt den Standardwert. `new`, `delete` und `nullptr` sind Schlüsselwörter.
+- Wie in C++ ist die Anweisung `a * b;` eine Deklaration (Zeiger `b` vom Typ `a*`), keine Multiplikation.
+- Was in C++ undefiniertes Verhalten wäre, ist ein Laufzeitfehler: Dereferenzieren von `nullptr`, hängende Zeiger und Referenzen auf Variablen, deren Scope beendet ist, Zugriff auf gelöschte Heap-Objekte, doppeltes `delete` und `delete` auf nicht per `new` erzeugte Objekte. Nicht freigegebener Speicher ist kein Fehler.
+- Ganzzahlarithmetik läuft im Zweierkomplement über; Division und Modulo durch 0 sind Laufzeitfehler, ebenso mehr als 100 000 verschachtelte Aufrufe.
+- Operanden und Argumente werden von links nach rechts ausgewertet. `int main()` ohne `return` liefert 0.
+- REPL: Eine Eingabe wird als Ganzes geprüft und bei Fehlern vollständig verworfen. Sitzungsvariablen sind in Funktionen nicht sichtbar (es gibt keine globalen Variablen), dürfen aber neu deklariert werden. Beim Laden einer Datei läuft `main()` im Sitzungs-Scope, seine lokalen Variablen bleiben danach verfügbar.
+
+### LSP-Server (`lsp/`, `vscode/`)
+
+Grundgerüst: `lsp/` ist der Server (LSP4J, JSON-RPC über stdin/stdout), `vscode/` der Client (`vscode-languageclient`). Bereits umgesetzt ist `publishDiagnostics` (Full-Sync, 200 ms Debouncing, Fehler aller Phasen); `hover`, `completion` und `definition` sind angemeldet, liefern aber noch nichts (`TODO` in `MiniCppTextDocumentService`).
+
+| Klasse | Inhalt |
+|---|---|
+| `MiniCppLanguageServerMain` | Start über stdio |
+| `MiniCppLanguageServer` | Lebenszyklus (`initialize`, `shutdown`, `exit`) und Capabilities |
+| `MiniCppTextDocumentService` | Dokument-Synchronisation, entprellte Analyse per `MiniCpp.compile`, Feature-Stubs |
+| `Document` | offenes Dokument mit Text, Version und letzter `Compilation` |
+| `Positions` | Umrechnung Interpreter-Positionen (Zeile 1-basiert) ↔ LSP (0-basiert), Diagnosen |
+
+```sh
+./gradlew :lsp:installDist          # erzeugt lsp/build/install/minicpp-lsp/bin/minicpp-lsp
+cd vscode && npm install && npm run compile
+code vscode                         # dann F5: startet VS Code mit der Extension und öffnet examples/
+```
+
+Die Extension registriert die Sprache `minicpp` für `*.mcpp`; in `examples/` ordnet `.vscode/settings.json` auch `*.cpp` MiniC++ zu. Der Serverpfad lässt sich mit der Einstellung `minicpp.server.path` überschreiben, `minicpp.trace.server` protokolliert die JSON-RPC-Nachrichten.
+
+### MCP-Server (`mcp/`)
+
+REST-Server gemäß der Endpunkt-Tabelle oben, mit Ollama als Provider und einem `MockProvider` für Tests. Die Antworten werden mit dem echten Compiler abgesichert: Compiler-Diagnosen fließen in die Prompts ein, `/detect-bugs` liefert sie zusätzlich strukturiert, und jeder Refactoring-Vorschlag wird vor der Rückgabe kompiliert (`"compiles": true/false`).
+
+```sh
+ollama pull codellama
+./gradlew :mcp:run                                   # http://127.0.0.1:8080, Provider Ollama
+./gradlew :mcp:run --args="--provider mock"          # ohne Ollama
+./gradlew :mcp:run --args="--model deepseek-coder --port 9000"
+
+curl -s localhost:8080/health
+curl -s localhost:8080/explain -d '{"code": "int main() { return 0; }"}'
+curl -s localhost:8080/complete -d '{"code": "int main() {\n\n}", "line": 2, "column": 0}'
+curl -s localhost:8080/refactor -d '{"code": "...", "instruction": "extract a function"}'
+curl -s localhost:8080/detect-bugs -d '{"code": "..."}'
+```
+
+Optionen (auch als Umgebungsvariablen): `--host` (`MCP_HOST`, Standard `127.0.0.1`), `--port` (`MCP_PORT`, 8080), `--provider` (`MCP_PROVIDER`, `ollama`|`mock`), `--ollama-url` (`OLLAMA_URL`), `--model` (`OLLAMA_MODEL`, `codellama`), `--timeout` (`OLLAMA_TIMEOUT`, 120 s). Fehler werden als `{"error": ...}` mit HTTP 400 (ungültige Anfrage), 405, 413 oder 502 (Provider nicht erreichbar) gemeldet.
+
+### Evaluation
+
+- **Korrektheit:** `./gradlew test` führt die Tests beider Module aus: Beispielprogramme mit erwarteter Ausgabe (`interpreter/src/test/resources/programs`), über 80 Fehlerfälle aller Phasen, Parser-, REPL-, Exporter- und MCP-Tests.
+- **GCC-Vergleich:** `scripts/compare-gcc.sh` führt jedes Beispielprogramm sowohl im Interpreter als auch – über `minicpp to-cpp` übersetzt – mit `g++ -std=c++17 -fwrapv` aus und vergleicht Ausgaben und Exit-Codes. Der Exporter überbrückt die bewussten Unterschiede (define-after-use, Standardwerte, `string`-Literale, `void main`, virtuelle Destruktoren für Basisklassen). Die CI (`.github/workflows/ci.yml`) führt den Vergleich bei jedem Push aus.
+- **Performance/Skalierbarkeit:** `./gradlew :benchmark:jmh` (eigene JMH-Argumente: `-Pjmh="Fib -f 2"`; Ergebnisse in `benchmark/build/jmh-result.json`). Die Benchmarks messen rekursive Aufrufe, Schleifen, virtuellen Dispatch und Objektkopien mit wachsender Größe sowie Parsen und Prüfen generierter Programme mit 10–1000 Klassen.
+
+### Hinweise für den LSP-Server
+
+`MiniCpp.compile(text)` liefert AST, globale Symbole und Diagnosen mit Quellbereichen. Nach erfolgreicher Prüfung sind im AST aufgelöst: `VarExpr.getKind()/getResolvedDecl()`, `CallExpr.getTarget()` (gewählte Überladung), `MemberAccessExpr.getResolvedField()` (`isArrow()` für `->`), `NewExpr.getConstructor()`, `Expr.getInferredType()` (für Hover). Bei Syntaxfehlern wird derzeit kein AST erzeugt.
 
 ---
 

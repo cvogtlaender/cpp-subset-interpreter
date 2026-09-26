@@ -12,6 +12,10 @@ java {
 dependencies {
     antlr 'org.antlr:antlr4:4.13.2'
     implementation 'org.antlr:antlr4-runtime:4.13.2'
+
+    testImplementation platform('org.junit:junit-bom:5.11.4')
+    testImplementation 'org.junit.jupiter:junit-jupiter'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 }
 
 generateGrammarSource {
@@ -29,4 +33,20 @@ sourceSets {
 
 application {
     mainClass = 'de.cvogtlaender.interpreter.Main'
-}   
+    applicationName = 'minicpp'
+}
+
+run {
+    // the REPL reads from stdin
+    standardInput = System.in
+}
+
+test {
+    useJUnitPlatform()
+    // deep recursion tests run the interpreter on its own large-stack thread
+    maxHeapSize = '1g'
+    testLogging {
+        events 'failed'
+        exceptionFormat 'full'
+    }
+}

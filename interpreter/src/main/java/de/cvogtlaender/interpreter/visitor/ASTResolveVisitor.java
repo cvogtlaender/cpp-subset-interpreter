@@ -3,9 +3,11 @@ package de.cvogtlaender.interpreter.visitor;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Deque;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import de.cvogtlaender.interpreter.ast.Program;
 import de.cvogtlaender.interpreter.ast.declaration.ClassDecl;
@@ -25,10 +27,13 @@ import de.cvogtlaender.interpreter.ast.expression.ErrorExpr;
 import de.cvogtlaender.interpreter.ast.expression.Expr;
 import de.cvogtlaender.interpreter.ast.expression.IntLiteral;
 import de.cvogtlaender.interpreter.ast.expression.MemberAccessExpr;
+import de.cvogtlaender.interpreter.ast.expression.NewExpr;
+import de.cvogtlaender.interpreter.ast.expression.NullptrLiteral;
 import de.cvogtlaender.interpreter.ast.expression.StringLiteral;
 import de.cvogtlaender.interpreter.ast.expression.UnaryExpr;
 import de.cvogtlaender.interpreter.ast.expression.VarExpr;
 import de.cvogtlaender.interpreter.ast.statement.BlockStmt;
+import de.cvogtlaender.interpreter.ast.statement.DeleteStmt;
 import de.cvogtlaender.interpreter.ast.statement.ExprStmt;
 import de.cvogtlaender.interpreter.ast.statement.IfStmt;
 import de.cvogtlaender.interpreter.ast.statement.ReturnStmt;
@@ -36,52 +41,230 @@ import de.cvogtlaender.interpreter.ast.statement.Stmt;
 import de.cvogtlaender.interpreter.ast.statement.VariableStmt;
 import de.cvogtlaender.interpreter.ast.statement.WhileStmt;
 import de.cvogtlaender.interpreter.ast.type.ClassType;
+import de.cvogtlaender.interpreter.ast.type.NullptrType;
 import de.cvogtlaender.interpreter.ast.type.PointerType;
 import de.cvogtlaender.interpreter.ast.type.PrimitiveType;
 import de.cvogtlaender.interpreter.ast.type.ReferenceType;
 import de.cvogtlaender.interpreter.ast.type.Type;
+import de.cvogtlaender.interpreter.diagnostic.Diagnostic;
+import de.cvogtlaender.interpreter.semantic.GlobalScope;
+import de.cvogtlaender.interpreter.semantic.Types;
+import de.cvogtlaender.interpreter.ast.AstNode;
 
+/**
+ * Two-pass name resolver. Pass 1 collects classes and functions (so they may
+ * be used before their definition), links base classes and checks member
+ * declarations. Pass 2 binds every identifier to its declaration using the
+ * lookup order local -> own members -> inherited members -> global.
+ *
+ * In the REPL, declarations and statements are resolved one at a time via
+ * {@link #declareClass}, {@link #declareFunction} and
+ * {@link #resolveSessionStatement}, which yields define-before-use semantics.
+ */
 public class ASTResolveVisitor implements AstVisitor<Void> {
 
-  private final Map<String, ClassDecl> classes = new LinkedHashMap<>();
-  private final Map<String, List<FunctionDecl>> functions = new LinkedHashMap<>();
+  private final GlobalScope globals;
   private final Deque<Map<String, Decl>> localScopes = new ArrayDeque<>();
+  private final List<Diagnostic> diagnostics = new ArrayList<>();
+  private ClassDecl currentClass;
 
-  private final List<String> errors = new ArrayList<>();
+  public ASTResolveVisitor() {
+    this(new GlobalScope());
+  }
+
+  public ASTResolveVisitor(GlobalScope globals) {
+    this.globals = globals;
+  }
+
+  public GlobalScope getGlobals() {
+    return globals;
+  }
 
   public Map<String, ClassDecl> getClasses() {
-    return classes;
+    return globals.getClasses();
   }
 
   public Map<String, List<FunctionDecl>> getFunctions() {
-    return functions;
+    return globals.getFunctions();
+  }
+
+  public List<Diagnostic> getDiagnostics() {
+    return diagnostics;
   }
 
   public List<String> getErrors() {
-    return errors;
+    return diagnostics.stream().map(Diagnostic::format).toList();
   }
 
   public boolean hasErrors() {
-    return !errors.isEmpty();
+    return !diagnostics.isEmpty();
   }
 
+  // Entry points
+
   public void resolve(Program program) {
-    collectTopLevel(program);
+    // pass 1: collect declarations
+    for (ClassDecl c : program.getClassDefs()) {
+      collectClass(c);
+    }
+    for (FunctionDecl f : program.getFunctions()) {
+      collectFunction(f);
+    }
+    for (ClassDecl c : program.getClassDefs()) {
+      linkParent(c);
+    }
+    for (ClassDecl c : program.getClassDefs()) {
+      checkMembers(c);
+    }
+
+    // pass 2: resolve bodies
     visitProgram(program);
   }
 
-  private void collectTopLevel(Program program) {
-    for (ClassDecl c : program.getClassDefs()) {
-      if (classes.containsKey(c.getClassName())) {
-        errors.add("Duplicate class name '" + c.getClassName() + "'");
-      } else {
-        classes.put(c.getClassName(), c);
-      }
+  /** REPL: declares a class and resolves its members immediately. */
+  public void declareClass(ClassDecl c) {
+    int before = diagnostics.size();
+    collectClass(c);
+    if (diagnostics.size() > before) {
+      return;
     }
-    for (FunctionDecl f : program.getFunctions()) {
-      functions.computeIfAbsent(f.getName(), k -> new ArrayList<>()).add(f);
+    linkParent(c);
+    checkMembers(c);
+    c.accept(this);
+  }
+
+  /** REPL: declares a function and resolves its body immediately. */
+  public void declareFunction(FunctionDecl f) {
+    collectFunction(f);
+    f.accept(this);
+  }
+
+  /** REPL: resolves a statement in the session scope. */
+  public void resolveSessionStatement(Stmt stmt) {
+    localScopes.push(globals.getSession());
+    try {
+      stmt.accept(this);
+    } finally {
+      localScopes.pop();
     }
   }
+
+  /** REPL: resolves a bare expression in the session scope. */
+  public void resolveSessionExpr(Expr expr) {
+    localScopes.push(globals.getSession());
+    try {
+      expr.accept(this);
+    } finally {
+      localScopes.pop();
+    }
+  }
+
+  // Pass 1
+
+  private void collectClass(ClassDecl c) {
+    String name = c.getClassName();
+    if (globals.getClasses().containsKey(name)) {
+      error(c, "redefinition of class '" + name + "'");
+      return;
+    }
+    if (globals.getFunctions().containsKey(name)) {
+      error(c, "class '" + name + "' conflicts with a function of the same name");
+      return;
+    }
+    globals.getClasses().put(name, c);
+  }
+
+  private void collectFunction(FunctionDecl f) {
+    if (globals.getClasses().containsKey(f.getName())) {
+      error(f, "function '" + f.getName() + "' conflicts with a class of the same name");
+      return;
+    }
+    List<FunctionDecl> overloads = globals.getFunctions().computeIfAbsent(f.getName(), k -> new ArrayList<>());
+    String key = Types.parameterKey(f.getParameters());
+    for (FunctionDecl other : overloads) {
+      if (Types.parameterKey(other.getParameters()).equals(key)) {
+        String what = other.isBuiltin() ? "built-in function" : "function";
+        error(f, "redefinition of " + what + " '" + Types.signature(f.getName(), f.getParameters()) + "'");
+        return;
+      }
+    }
+    overloads.add(f);
+  }
+
+  private void linkParent(ClassDecl c) {
+    String parentName = c.getParentClassName();
+    if (parentName == null) {
+      return;
+    }
+    ClassDecl parent = globals.getClass(parentName);
+    if (parent == null) {
+      error(c, "unknown base class '" + parentName + "' of class '" + c.getClassName() + "'");
+      return;
+    }
+    // reject inheritance cycles
+    Set<ClassDecl> seen = new HashSet<>();
+    seen.add(c);
+    for (ClassDecl p = parent; p != null; p = globals.getClass(p.getParentClassName() == null ? "" : p.getParentClassName())) {
+      if (!seen.add(p)) {
+        error(c, "class '" + c.getClassName() + "' inherits from itself");
+        return;
+      }
+    }
+    c.setParent(parent);
+  }
+
+  private void checkMembers(ClassDecl c) {
+    Set<String> names = new HashSet<>();
+
+    for (FieldDecl f : c.getFields()) {
+      f.setOwner(c);
+      if (!names.add(f.getName())) {
+        error(f, "duplicate member '" + f.getName() + "' in class '" + c.getClassName() + "'");
+      } else if (c.getParent() != null && GlobalScope.findField(c.getParent(), f.getName()) != null) {
+        error(f, "field '" + f.getName() + "' is already declared in a base class of '" + c.getClassName() + "'");
+      }
+    }
+
+    Map<String, MethodDecl> methodSignatures = new LinkedHashMap<>();
+    for (MethodDecl m : c.getMethods()) {
+      m.setOwner(c);
+      if (m.getName().equals(c.getClassName())) {
+        error(m, "method must not have the same name as its class '" + c.getClassName() + "'");
+      }
+      boolean isField = c.getFields().stream().anyMatch(f -> f.getName().equals(m.getName()));
+      if (isField) {
+        error(m, "method '" + m.getName() + "' conflicts with a field of the same name");
+      }
+      String key = m.getName() + "(" + Types.parameterKey(m.getParameters()) + ")";
+      if (methodSignatures.putIfAbsent(key, m) != null) {
+        error(m, "redefinition of method '" + Types.signature(m.getName(), m.getParameters()) + "'");
+      }
+    }
+
+    Set<String> constructorSignatures = new HashSet<>();
+    for (ConstructorDecl ctor : c.getConstructors()) {
+      ctor.setOwner(c);
+      if (!ctor.getName().equals(c.getClassName())) {
+        error(ctor, "constructor '" + ctor.getName() + "' must be named like its class '" + c.getClassName()
+            + "' (or is a method missing its return type)");
+      }
+      if (!constructorSignatures.add(Types.parameterKey(ctor.getParameters()))) {
+        error(ctor, "redefinition of constructor '" + Types.signature(c.getClassName(), ctor.getParameters()) + "'");
+      }
+    }
+
+    if (c.getConstructors().isEmpty()) {
+      ConstructorDecl synthesized = new ConstructorDecl(c.getClassName(), new ArrayList<>(),
+          new BlockStmt(new ArrayList<>()));
+      synthesized.copyRange(c);
+      synthesized.getBody().copyRange(c);
+      synthesized.setOwner(c);
+      synthesized.setSynthesized(true);
+      c.getConstructors().add(synthesized);
+    }
+  }
+
+  // Pass 2
 
   @Override
   public Void visitProgram(Program node) {
@@ -96,86 +279,111 @@ public class ASTResolveVisitor implements AstVisitor<Void> {
 
   @Override
   public Void visitFunctionDecl(FunctionDecl node) {
-    validateType(node.getReturnType(), "return type of '" + node.getName() + "'");
-    pushScope();
-    for (ParameterDecl p : node.getParameters()) {
-      validateType(p.getType(), "parameter '" + p.getName() + "'");
-      define(p.getName(), p);
-    }
-    visitBlockStmt(node.getBody());
-    popScope();
+    validateType(node.getReturnType(), node, true);
+    resolveCallable(node.getParameters(), node.getBody());
     return null;
   }
 
   @Override
   public Void visitClassDecl(ClassDecl node) {
-    if (node.getParentClassName() != null && !classes.containsKey(node.getParentClassName())) {
-      errors.add("Unknown base class '" + node.getParentClassName() + "' in class '" + node.getClassName() + "'");
-    }
-    for (FieldDecl f : node.getFields()) {
-      validateType(f.getType(), "field '" + f.getName() + "'");
-    }
-    for (ConstructorDecl c : node.getConstructors()) {
-      c.accept(this);
-    }
-    for (MethodDecl m : node.getMethods()) {
-      m.accept(this);
+    ClassDecl previous = currentClass;
+    currentClass = node;
+    try {
+      for (FieldDecl f : node.getFields()) {
+        f.accept(this);
+      }
+      for (ConstructorDecl c : node.getConstructors()) {
+        c.accept(this);
+      }
+      for (MethodDecl m : node.getMethods()) {
+        m.accept(this);
+      }
+    } finally {
+      currentClass = previous;
     }
     return null;
   }
 
   @Override
   public Void visitConstructorDecl(ConstructorDecl node) {
-    pushScope();
-    for (ParameterDecl p : node.getParameters()) {
-      validateType(p.getType(), "parameter '" + p.getName() + "'");
-      define(p.getName(), p);
-    }
-    visitBlockStmt(node.getBody());
-    popScope();
+    resolveCallable(node.getParameters(), node.getBody());
     return null;
   }
 
   @Override
   public Void visitMethodDecl(MethodDecl node) {
-    validateType(node.getReturnType(), "return type of '" + node.getName() + "'");
+    validateType(node.getReturnType(), node, true);
+    resolveCallable(node.getParameters(), node.getBody());
+    return null;
+  }
+
+  @Override
+  public Void visitFieldDecl(FieldDecl node) {
+    validateType(node.getType(), node, false);
+    return null;
+  }
+
+  private void resolveCallable(List<ParameterDecl> parameters, BlockStmt body) {
+    // function bodies never see REPL session variables (no globals)
+    Deque<Map<String, Decl>> saved = new ArrayDeque<>(localScopes);
+    localScopes.clear();
     pushScope();
-    for (ParameterDecl p : node.getParameters()) {
-      validateType(p.getType(), "parameter '" + p.getName() + "'");
-      define(p.getName(), p);
+    try {
+      for (ParameterDecl p : parameters) {
+        p.accept(this);
+      }
+      // the outermost block shares the parameter scope, as in C++
+      for (Stmt stmt : body.getStatements()) {
+        stmt.accept(this);
+      }
+    } finally {
+      localScopes.clear();
+      localScopes.addAll(saved);
     }
-    visitBlockStmt(node.getBody());
-    popScope();
+  }
+
+  @Override
+  public Void visitParameterDecl(ParameterDecl node) {
+    validateType(node.getType(), node, false);
+    define(node.getName(), node, node);
     return null;
   }
 
   @Override
   public Void visitBlockStmt(BlockStmt node) {
     pushScope();
-    for (Stmt stmt : node.getStatements()) {
-      stmt.accept(this);
+    try {
+      for (Stmt stmt : node.getStatements()) {
+        stmt.accept(this);
+      }
+    } finally {
+      popScope();
     }
-    popScope();
     return null;
   }
 
   @Override
   public Void visitVariableStmt(VariableStmt node) {
-    VariableDecl decl = node.getVariableDecl();
-    validateType(decl.getType(), "variable '" + decl.getName() + "'");
-    if (decl.getInitializer() != null) {
-      decl.getInitializer().accept(this);
+    node.getVariableDecl().accept(this);
+    return null;
+  }
+
+  @Override
+  public Void visitVariableDecl(VariableDecl node) {
+    validateType(node.getType(), node, false);
+    if (node.getInitializer() != null) {
+      node.getInitializer().accept(this);
     }
-    define(decl.getName(), decl);
+    define(node.getName(), node, node);
     return null;
   }
 
   @Override
   public Void visitIfStmt(IfStmt node) {
     node.getCondition().accept(this);
-    node.getIfBranch().accept(this);
+    resolveBranch(node.getIfBranch());
     if (node.getElseBranch() != null) {
-      node.getElseBranch().accept(this);
+      resolveBranch(node.getElseBranch());
     }
     return null;
   }
@@ -183,8 +391,18 @@ public class ASTResolveVisitor implements AstVisitor<Void> {
   @Override
   public Void visitWhileStmt(WhileStmt node) {
     node.getCondition().accept(this);
-    node.getBody().accept(this);
+    resolveBranch(node.getBody());
     return null;
+  }
+
+  // a non-block branch such as 'if (c) int x = 1;' still gets its own scope
+  private void resolveBranch(Stmt branch) {
+    pushScope();
+    try {
+      branch.accept(this);
+    } finally {
+      popScope();
+    }
   }
 
   @Override
@@ -202,17 +420,54 @@ public class ASTResolveVisitor implements AstVisitor<Void> {
   }
 
   @Override
+  public Void visitDeleteStmt(DeleteStmt node) {
+    node.getPointer().accept(this);
+    return null;
+  }
+
+  @Override
   public Void visitVarExpr(VarExpr node) {
     String name = node.getName();
+
     Decl local = lookupLocal(name);
     if (local != null) {
+      node.setKind(VarExpr.Kind.VARIABLE);
       node.setResolvedDecl(local);
-    } else if (classes.containsKey(name)) {
-      node.setResolvedDecl(classes.get(name));
-    } else if (functions.containsKey(name)) {
-      // pass
+      return null;
+    }
+
+    if (currentClass != null) {
+      ClassDecl owner = GlobalScope.findMemberOwner(currentClass, name);
+      if (owner != null) {
+        FieldDecl field = GlobalScope.findField(owner, name);
+        node.setMemberOwner(owner);
+        if (field != null && field.getOwner() == owner) {
+          node.setKind(VarExpr.Kind.FIELD);
+          node.setResolvedDecl(field);
+        } else {
+          node.setKind(VarExpr.Kind.METHOD);
+        }
+        return null;
+      }
+    }
+
+    if (globals.getFunctions().containsKey(name)) {
+      node.setKind(VarExpr.Kind.FUNCTION);
+      return null;
+    }
+
+    ClassDecl cls = globals.getClass(name);
+    if (cls != null) {
+      node.setKind(VarExpr.Kind.CLASS);
+      node.setResolvedDecl(cls);
+      return null;
+    }
+
+    boolean inSession = localScopes.stream().anyMatch(scope -> scope == globals.getSession());
+    if (globals.getSession().containsKey(name) && !inSession) {
+      error(node, "session variable '" + name + "' cannot be used inside a function");
     } else {
-      errors.add("Undefined identifier '" + name + "'");
+      error(node, "use of undeclared identifier '" + name + "'");
     }
     return null;
   }
@@ -248,7 +503,27 @@ public class ASTResolveVisitor implements AstVisitor<Void> {
 
   @Override
   public Void visitMemberAccessExpr(MemberAccessExpr node) {
+    // the member itself is looked up by the type checker, which knows the
+    // static type of the object expression
     node.getObj().accept(this);
+    return null;
+  }
+
+  @Override
+  public Void visitNewExpr(NewExpr node) {
+    if (Types.isVoid(node.getAllocatedType())) {
+      error(node, "cannot allocate an object of type 'void'");
+    } else {
+      validateType(node.getAllocatedType(), node, false);
+    }
+    for (Expr arg : node.getArguments()) {
+      arg.accept(this);
+    }
+    return null;
+  }
+
+  @Override
+  public Void visitNullptrLiteral(NullptrLiteral node) {
     return null;
   }
 
@@ -278,27 +553,17 @@ public class ASTResolveVisitor implements AstVisitor<Void> {
   }
 
   @Override
-  public Void visitFieldDecl(FieldDecl node) {
-    return null;
-  }
-
-  @Override
-  public Void visitParameterDecl(ParameterDecl node) {
-    return null;
-  }
-
-  @Override
-  public Void visitVariableDecl(VariableDecl node) {
-    return null;
-  }
-
-  @Override
   public Void visitClassType(ClassType node) {
     return null;
   }
 
   @Override
   public Void visitPrimitiveType(PrimitiveType node) {
+    return null;
+  }
+
+  @Override
+  public Void visitNullptrType(NullptrType node) {
     return null;
   }
 
@@ -312,6 +577,8 @@ public class ASTResolveVisitor implements AstVisitor<Void> {
     return null;
   }
 
+  // Helpers
+
   private void pushScope() {
     localScopes.push(new LinkedHashMap<>());
   }
@@ -320,30 +587,53 @@ public class ASTResolveVisitor implements AstVisitor<Void> {
     localScopes.pop();
   }
 
-  private void define(String name, Decl decl) {
-    if (!localScopes.isEmpty()) {
-      localScopes.peek().put(name, decl);
+  private void define(String name, Decl decl, AstNode at) {
+    if (localScopes.isEmpty()) {
+      return;
     }
+    Map<String, Decl> scope = localScopes.peek();
+    // the REPL session scope allows re-declaring a variable
+    if (scope.containsKey(name) && scope != globals.getSession()) {
+      error(at, "redeclaration of '" + name + "'");
+      return;
+    }
+    scope.put(name, decl);
   }
 
-  private void validateType(Type type, String context) {
+  private void validateType(Type type, AstNode at, boolean allowVoid) {
     if (type instanceof ClassType ct) {
-      if (!classes.containsKey(ct.getName())) {
-        errors.add("Unknown type '" + ct.getName() + "' in " + context);
+      if (!globals.getClasses().containsKey(ct.getName())) {
+        error(at, "unknown type '" + ct.getName() + "'");
       }
     } else if (type instanceof ReferenceType rt) {
-      validateType(rt.getReferencedType(), context);
+      if (Types.isVoid(rt.getReferencedType())) {
+        error(at, "cannot declare a reference to 'void'");
+      } else {
+        validateType(rt.getReferencedType(), at, false);
+      }
     } else if (type instanceof PointerType pt) {
-      validateType(pt.getPointeeType(), context);
+      // without casts a 'void*' could never be used
+      if (Types.isVoid(pt.getPointeeType())) {
+        error(at, "pointers to 'void' are not supported");
+      } else {
+        validateType(pt.getPointeeType(), at, false);
+      }
+    } else if (!allowVoid && Types.isVoid(type)) {
+      error(at, "'void' is only allowed as a return type");
     }
   }
 
   private Decl lookupLocal(String name) {
     for (Map<String, Decl> scope : localScopes) {
-      if (scope.containsKey(name)) {
-        return scope.get(name);
+      Decl decl = scope.get(name);
+      if (decl != null) {
+        return decl;
       }
     }
     return null;
+  }
+
+  private void error(AstNode node, String message) {
+    diagnostics.add(Diagnostic.at(Diagnostic.Phase.RESOLVE, node, message));
   }
 }

@@ -12,6 +12,24 @@ public class ClassDecl extends Decl {
   private List<FieldDecl> fields;
   private List<ConstructorDecl> constructors;
   private List<MethodDecl> methods;
+  private ClassDecl parent;
+
+  public ClassDecl getParent() {
+    return parent;
+  }
+
+  public void setParent(ClassDecl parent) {
+    this.parent = parent;
+  }
+
+  public boolean isSubclassOf(ClassDecl other) {
+    for (ClassDecl c = this; c != null; c = c.parent) {
+      if (c == other) {
+        return true;
+      }
+    }
+    return false;
+  }
 
   public ClassDecl(String className, String parentClassName, List<FieldDecl> fields,
       List<ConstructorDecl> constructors,

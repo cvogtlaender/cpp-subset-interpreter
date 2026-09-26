@@ -4,6 +4,12 @@ program
     : declaration* EOF
     ;
 
+// REPL input: declarations and statements in any order, optionally
+// terminated by a bare expression whose value is printed.
+replInput
+    : (declaration | statement)* expr? EOF
+    ;
+
 declaration
     : functionDef
     | classDef
@@ -11,13 +17,10 @@ declaration
 
 // TYPES
 
+// 'T*', 'T**', ...; a statement 'a * b;' is therefore parsed as a declaration
 type
-    : baseType
-    | Identifier
+    : (baseType | Identifier) STAR*
     ;
-
-// type
-//    : (baseType | Identifier) AMP?
 
 baseType
     : INT
@@ -89,11 +92,13 @@ statement
     | ifStmt
     | whileStmt
     | returnStmt SEMI
+    | deleteStmt SEMI
     | expr SEMI
     ;
 
-varDecl		
+varDecl
     : type Identifier
+    | type Identifier LPAREN argList RPAREN
     | (type | typeRef) Identifier ASSIGN expr
     ;
 
@@ -112,6 +117,10 @@ whileStmt
 
 returnStmt
     : RETURN expr?
+    ;
+
+deleteStmt
+    : DELETE expr
     ;
 
 // EXPRESSIONS
@@ -156,8 +165,13 @@ multiplicativeExpr
     ;
 
 unaryExpr
-    : (NOT | PLUS | MINUS) unaryExpr
+    : (NOT | PLUS | MINUS | STAR | AMP) unaryExpr
+    | newExpr
     | postfixExpr
+    ;
+
+newExpr
+    : NEW (baseType | Identifier) (LPAREN argList? RPAREN)?
     ;
 
 // POSTFIX EXPRESSIONS
@@ -169,6 +183,7 @@ postfixExpr
 postfixPart
     : LPAREN argList? RPAREN
     | DOT Identifier
+    | ARROW Identifier
     ;
 
 primaryExpr
@@ -188,6 +203,7 @@ literal
     | BoolLiteral
     | CharLiteral
     | StringLiteral
+    | NULLPTR
     ;
 
 // KEYWORDS
@@ -206,6 +222,10 @@ IF          : 'if';
 ELSE        : 'else';
 WHILE       : 'while';
 RETURN      : 'return';
+
+NEW         : 'new';
+DELETE      : 'delete';
+NULLPTR     : 'nullptr';
 
 // OPERATORS / SYMBOLS
 
@@ -232,6 +252,7 @@ NOT         : '!';
 AMP         : '&';
 
 DOT         : '.';
+ARROW       : '->';
 
 LPAREN      : '(';
 RPAREN      : ')';

@@ -3,7 +3,12 @@ package de.cvogtlaender.interpreter.visitor;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.antlr.v4.runtime.ParserRuleContext;
+import org.antlr.v4.runtime.Token;
+
+import de.cvogtlaender.interpreter.ast.AstNode;
 import de.cvogtlaender.interpreter.ast.Program;
+import de.cvogtlaender.interpreter.ast.ReplInput;
 import de.cvogtlaender.interpreter.ast.declaration.ClassDecl;
 import de.cvogtlaender.interpreter.ast.declaration.ConstructorDecl;
 import de.cvogtlaender.interpreter.ast.declaration.FieldDecl;
@@ -16,13 +21,17 @@ import de.cvogtlaender.interpreter.ast.expression.BinaryExpr;
 import de.cvogtlaender.interpreter.ast.expression.BoolLiteral;
 import de.cvogtlaender.interpreter.ast.expression.CallExpr;
 import de.cvogtlaender.interpreter.ast.expression.CharLiteral;
+import de.cvogtlaender.interpreter.ast.expression.ErrorExpr;
 import de.cvogtlaender.interpreter.ast.expression.Expr;
 import de.cvogtlaender.interpreter.ast.expression.IntLiteral;
 import de.cvogtlaender.interpreter.ast.expression.MemberAccessExpr;
+import de.cvogtlaender.interpreter.ast.expression.NewExpr;
+import de.cvogtlaender.interpreter.ast.expression.NullptrLiteral;
 import de.cvogtlaender.interpreter.ast.expression.StringLiteral;
 import de.cvogtlaender.interpreter.ast.expression.UnaryExpr;
 import de.cvogtlaender.interpreter.ast.expression.VarExpr;
 import de.cvogtlaender.interpreter.ast.statement.BlockStmt;
+import de.cvogtlaender.interpreter.ast.statement.DeleteStmt;
 import de.cvogtlaender.interpreter.ast.statement.ExprStmt;
 import de.cvogtlaender.interpreter.ast.statement.IfStmt;
 import de.cvogtlaender.interpreter.ast.statement.ReturnStmt;
@@ -30,18 +39,19 @@ import de.cvogtlaender.interpreter.ast.statement.Stmt;
 import de.cvogtlaender.interpreter.ast.statement.VariableStmt;
 import de.cvogtlaender.interpreter.ast.statement.WhileStmt;
 import de.cvogtlaender.interpreter.ast.type.ClassType;
+import de.cvogtlaender.interpreter.ast.type.PointerType;
 import de.cvogtlaender.interpreter.ast.type.PrimitiveType;
 import de.cvogtlaender.interpreter.ast.type.ReferenceType;
 import de.cvogtlaender.interpreter.ast.type.Type;
 import de.cvogtlaender.interpreter.MiniCppBaseVisitor;
 import de.cvogtlaender.interpreter.MiniCppParser.AdditiveExprContext;
-import de.cvogtlaender.interpreter.MiniCppParser.ArgListContext;
 import de.cvogtlaender.interpreter.MiniCppParser.AssignmentExprContext;
 import de.cvogtlaender.interpreter.MiniCppParser.BaseTypeContext;
 import de.cvogtlaender.interpreter.MiniCppParser.BlockContext;
 import de.cvogtlaender.interpreter.MiniCppParser.ClassDefContext;
 import de.cvogtlaender.interpreter.MiniCppParser.ConstructorDefContext;
 import de.cvogtlaender.interpreter.MiniCppParser.DeclarationContext;
+import de.cvogtlaender.interpreter.MiniCppParser.DeleteStmtContext;
 import de.cvogtlaender.interpreter.MiniCppParser.EqualityExprContext;
 import de.cvogtlaender.interpreter.MiniCppParser.ExprContext;
 import de.cvogtlaender.interpreter.MiniCppParser.FieldDeclContext;
@@ -53,13 +63,14 @@ import de.cvogtlaender.interpreter.MiniCppParser.LogicalOrExprContext;
 import de.cvogtlaender.interpreter.MiniCppParser.MemberDeclContext;
 import de.cvogtlaender.interpreter.MiniCppParser.MethodDefContext;
 import de.cvogtlaender.interpreter.MiniCppParser.MultiplicativeExprContext;
+import de.cvogtlaender.interpreter.MiniCppParser.NewExprContext;
 import de.cvogtlaender.interpreter.MiniCppParser.ParamContext;
-import de.cvogtlaender.interpreter.MiniCppParser.ParamListContext;
 import de.cvogtlaender.interpreter.MiniCppParser.PostfixExprContext;
 import de.cvogtlaender.interpreter.MiniCppParser.PostfixPartContext;
 import de.cvogtlaender.interpreter.MiniCppParser.PrimaryExprContext;
 import de.cvogtlaender.interpreter.MiniCppParser.ProgramContext;
 import de.cvogtlaender.interpreter.MiniCppParser.RelationalExprContext;
+import de.cvogtlaender.interpreter.MiniCppParser.ReplInputContext;
 import de.cvogtlaender.interpreter.MiniCppParser.ReturnStmtContext;
 import de.cvogtlaender.interpreter.MiniCppParser.StatementContext;
 import de.cvogtlaender.interpreter.MiniCppParser.TypeContext;
@@ -68,6 +79,10 @@ import de.cvogtlaender.interpreter.MiniCppParser.UnaryExprContext;
 import de.cvogtlaender.interpreter.MiniCppParser.VarDeclContext;
 import de.cvogtlaender.interpreter.MiniCppParser.WhileStmtContext;
 
+/**
+ * Builds the AST from an ANTLR parse tree. Must only be applied to parse
+ * trees without syntax errors.
+ */
 public class ASTBuildVisitor extends MiniCppBaseVisitor<Object> {
 
   @Override
@@ -83,15 +98,32 @@ public class ASTBuildVisitor extends MiniCppBaseVisitor<Object> {
       }
 
       switch (declaration) {
-        case FunctionDecl f -> functioDefs.add((FunctionDecl) declaration);
-        case ClassDecl c -> classDefs.add((ClassDecl) declaration);
+        case FunctionDecl f -> functioDefs.add(f);
+        case ClassDecl c -> classDefs.add(c);
         default -> {
           continue;
         }
       }
     }
 
-    return new Program(functioDefs, classDefs);
+    return at(new Program(functioDefs, classDefs), ctx);
+  }
+
+  @Override
+  public Object visitReplInput(ReplInputContext ctx) {
+    List<AstNode> items = new ArrayList<>();
+
+    for (int i = 0; i < ctx.getChildCount(); i++) {
+      if (ctx.getChild(i) instanceof DeclarationContext decl) {
+        items.add((AstNode) visitDeclaration(decl));
+      } else if (ctx.getChild(i) instanceof StatementContext statement) {
+        items.add((AstNode) visit(statement));
+      }
+    }
+
+    Expr trailing = ctx.expr() == null ? null : (Expr) visit(ctx.expr());
+
+    return new ReplInput(items, trailing);
   }
 
   // Declaration
@@ -119,7 +151,7 @@ public class ASTBuildVisitor extends MiniCppBaseVisitor<Object> {
     }
 
     BlockStmt body = (BlockStmt) visit(ctx.block());
-    FunctionDecl function = new FunctionDecl(returnType, name, parameters, body);
+    FunctionDecl function = at(new FunctionDecl(returnType, name, parameters, body), ctx);
 
     return function;
   }
@@ -135,14 +167,9 @@ public class ASTBuildVisitor extends MiniCppBaseVisitor<Object> {
     }
 
     String name = ctx.Identifier().getText();
-    ParameterDecl parameter = new ParameterDecl(type, name);
+    ParameterDecl parameter = at(new ParameterDecl(type, name), ctx);
 
     return parameter;
-  }
-
-  @Override
-  public Object visitParamList(ParamListContext ctx) {
-    return this.visitParamList(ctx);
   }
 
   @Override
@@ -175,7 +202,7 @@ public class ASTBuildVisitor extends MiniCppBaseVisitor<Object> {
       }
     }
 
-    ClassDecl classDef = new ClassDecl(className, parentClassName, fields, constructors, methods);
+    ClassDecl classDef = at(new ClassDecl(className, parentClassName, fields, constructors, methods), ctx);
 
     return classDef;
   }
@@ -199,7 +226,7 @@ public class ASTBuildVisitor extends MiniCppBaseVisitor<Object> {
     Type type = (Type) visit(ctx.type());
 
     String name = ctx.Identifier().getText();
-    FieldDecl field = new FieldDecl(type, name);
+    FieldDecl field = at(new FieldDecl(type, name), ctx);
 
     return field;
   }
@@ -218,7 +245,7 @@ public class ASTBuildVisitor extends MiniCppBaseVisitor<Object> {
 
     BlockStmt body = (BlockStmt) visit(ctx.block());
 
-    ConstructorDecl constructor = new ConstructorDecl(name, parameters, body);
+    ConstructorDecl constructor = at(new ConstructorDecl(name, parameters, body), ctx);
 
     return constructor;
 
@@ -228,7 +255,7 @@ public class ASTBuildVisitor extends MiniCppBaseVisitor<Object> {
   public Object visitMethodDef(MethodDefContext ctx) {
     Type returnType = (Type) visit(ctx.type());
     String name = ctx.Identifier().getText();
-    Boolean isVirtual = ctx.VIRTUAL() == null ? false : true;
+    boolean isVirtual = ctx.VIRTUAL() != null;
 
     List<ParameterDecl> parameters = new ArrayList<>();
 
@@ -240,7 +267,7 @@ public class ASTBuildVisitor extends MiniCppBaseVisitor<Object> {
 
     BlockStmt body = (BlockStmt) visit(ctx.block());
 
-    MethodDecl method = new MethodDecl(returnType, name, parameters, body, isVirtual);
+    MethodDecl method = at(new MethodDecl(returnType, name, parameters, body, isVirtual), ctx);
 
     return method;
   }
@@ -260,7 +287,7 @@ public class ASTBuildVisitor extends MiniCppBaseVisitor<Object> {
     Expr target = (Expr) visit(ctx.logicalOrExpr());
     Expr value = (Expr) visit(ctx.assignmentExpr());
 
-    AssignExpr assignExpr = new AssignExpr(target, value);
+    AssignExpr assignExpr = at(new AssignExpr(target, value), ctx);
 
     return assignExpr;
   }
@@ -274,7 +301,7 @@ public class ASTBuildVisitor extends MiniCppBaseVisitor<Object> {
       Expr right = (Expr) visit(ctx.logicalAndExpr(i));
       BinaryExpr.Operator op = BinaryExpr.Operator.OR;
 
-      expr = new BinaryExpr(op, expr, right);
+      expr = span(new BinaryExpr(op, expr, right), expr, right);
     }
 
     return expr;
@@ -289,7 +316,7 @@ public class ASTBuildVisitor extends MiniCppBaseVisitor<Object> {
       Expr right = (Expr) visit(ctx.equalityExpr(i));
       BinaryExpr.Operator op = BinaryExpr.Operator.AND;
 
-      expr = new BinaryExpr(op, expr, right);
+      expr = span(new BinaryExpr(op, expr, right), expr, right);
     }
 
     return expr;
@@ -311,7 +338,7 @@ public class ASTBuildVisitor extends MiniCppBaseVisitor<Object> {
         default -> throw new IllegalStateException("Unkown Operator: " + opText);
       };
 
-      expr = new BinaryExpr(op, expr, right);
+      expr = span(new BinaryExpr(op, expr, right), expr, right);
     }
 
     return expr;
@@ -334,7 +361,7 @@ public class ASTBuildVisitor extends MiniCppBaseVisitor<Object> {
         default -> throw new IllegalStateException("Unkown Operator: " + opText);
       };
 
-      expr = new BinaryExpr(op, expr, right);
+      expr = span(new BinaryExpr(op, expr, right), expr, right);
     }
 
     return expr;
@@ -356,7 +383,7 @@ public class ASTBuildVisitor extends MiniCppBaseVisitor<Object> {
         default -> throw new IllegalStateException("Unkown Operator: " + opText);
       };
 
-      expr = new BinaryExpr(op, expr, right);
+      expr = span(new BinaryExpr(op, expr, right), expr, right);
     }
 
     return expr;
@@ -379,7 +406,7 @@ public class ASTBuildVisitor extends MiniCppBaseVisitor<Object> {
         default -> throw new IllegalStateException("Unkown Operator: " + opText);
       };
 
-      expr = new BinaryExpr(op, expr, right);
+      expr = span(new BinaryExpr(op, expr, right), expr, right);
     }
 
     return expr;
@@ -392,6 +419,10 @@ public class ASTBuildVisitor extends MiniCppBaseVisitor<Object> {
       return visit(ctx.postfixExpr());
     }
 
+    if (ctx.newExpr() != null) {
+      return visit(ctx.newExpr());
+    }
+
     Expr unaryExpr = (Expr) visit(ctx.unaryExpr());
 
     UnaryExpr.Operator op = UnaryExpr.Operator.POSITIVE;
@@ -400,13 +431,40 @@ public class ASTBuildVisitor extends MiniCppBaseVisitor<Object> {
       op = UnaryExpr.Operator.NEGATE;
     } else if (ctx.NOT() != null) {
       op = UnaryExpr.Operator.NOT;
-    } else {
-      throw new IllegalStateException("Unkown Operator: " + ctx.getChild(1).toString());
+    } else if (ctx.STAR() != null) {
+      op = UnaryExpr.Operator.DEREF;
+    } else if (ctx.AMP() != null) {
+      op = UnaryExpr.Operator.ADDRESS_OF;
     }
 
-    Expr expr = new UnaryExpr(op, unaryExpr);
+    // fold '-2147483648', which is out of range as a positive literal
+    if (op == UnaryExpr.Operator.NEGATE && unaryExpr instanceof ErrorExpr
+        && ctx.unaryExpr().getText().equals("2147483648")) {
+      return at(new IntLiteral(Integer.MIN_VALUE), ctx);
+    }
+
+    Expr expr = at(new UnaryExpr(op, unaryExpr), ctx);
 
     return expr;
+  }
+
+  @Override
+  public Object visitNewExpr(NewExprContext ctx) {
+    Type type = ctx.baseType() != null
+        ? (Type) visit(ctx.baseType())
+        : new ClassType(ctx.Identifier().getText());
+
+    List<Expr> args = new ArrayList<>();
+
+    if (ctx.argList() != null) {
+      for (ExprContext e : ctx.argList().expr()) {
+        args.add((Expr) visit(e));
+      }
+    }
+
+    NewExpr newExpr = at(new NewExpr(type, args), ctx);
+
+    return newExpr;
   }
 
   @Override
@@ -417,9 +475,10 @@ public class ASTBuildVisitor extends MiniCppBaseVisitor<Object> {
 
       if (part.Identifier() != null) {
 
-        expr = new MemberAccessExpr(
+        expr = span(new MemberAccessExpr(
             expr,
-            part.Identifier().getText());
+            part.Identifier().getText(),
+            part.ARROW() != null), expr, part);
 
       } else {
 
@@ -431,18 +490,13 @@ public class ASTBuildVisitor extends MiniCppBaseVisitor<Object> {
           }
         }
 
-        expr = new CallExpr(
+        expr = span(new CallExpr(
             expr,
-            args);
+            args), expr, part);
       }
     }
 
     return expr;
-  }
-
-  @Override
-  public Object visitPostfixPart(PostfixPartContext ctx) {
-    return super.visitPostfixPart(ctx);
   }
 
   @Override
@@ -453,36 +507,42 @@ public class ASTBuildVisitor extends MiniCppBaseVisitor<Object> {
     }
 
     if (ctx.Identifier() != null) {
-      return new VarExpr(ctx.Identifier().getText());
+      return at(new VarExpr(ctx.Identifier().getText()), ctx);
     }
 
     return (Expr) visit(ctx.expr());
   }
 
   @Override
-  public Object visitArgList(ArgListContext ctx) {
-    return super.visitArgList(ctx);
-  }
-
-  @Override
   public Object visitLiteral(LiteralContext ctx) {
     if (ctx.IntLiteral() != null) {
-      return new IntLiteral(
-          Integer.parseInt(
-              ctx.IntLiteral().getText()));
+      String text = ctx.IntLiteral().getText();
+
+      try {
+        return at(new IntLiteral(Integer.parseInt(text)), ctx);
+      } catch (NumberFormatException e) {
+        return at(new ErrorExpr("integer literal '" + text + "' is out of range for int"), ctx);
+      }
     }
 
     if (ctx.BoolLiteral() != null) {
-      return new BoolLiteral(
+      return at(new BoolLiteral(
           Boolean.parseBoolean(
-              ctx.BoolLiteral().getText()));
+              ctx.BoolLiteral().getText())),
+          ctx);
+    }
+
+    if (ctx.NULLPTR() != null) {
+      return at(new NullptrLiteral(), ctx);
     }
 
     if (ctx.StringLiteral() != null) {
-      return new StringLiteral(ctx.StringLiteral().getText());
+      String text = ctx.StringLiteral().getText();
+      return at(new StringLiteral(unescape(text.substring(1, text.length() - 1))), ctx);
     }
 
-    return new CharLiteral(ctx.CharLiteral().getText().charAt(0));
+    String text = ctx.CharLiteral().getText();
+    return at(new CharLiteral(unescape(text.substring(1, text.length() - 1)).charAt(0)), ctx);
   }
 
   // Statement
@@ -493,16 +553,18 @@ public class ASTBuildVisitor extends MiniCppBaseVisitor<Object> {
     if (ctx.block() != null) {
       return (BlockStmt) visit(ctx.block());
     } else if (ctx.varDecl() != null) {
-      return (VariableStmt) visit(ctx.varDecl());
+      return at((VariableStmt) visit(ctx.varDecl()), ctx);
     } else if (ctx.ifStmt() != null) {
       return (IfStmt) visit(ctx.ifStmt());
     } else if (ctx.whileStmt() != null) {
       return (WhileStmt) visit(ctx.whileStmt());
     } else if (ctx.returnStmt() != null) {
-      return (ReturnStmt) visit(ctx.returnStmt());
+      return at((ReturnStmt) visit(ctx.returnStmt()), ctx);
+    } else if (ctx.deleteStmt() != null) {
+      return at((DeleteStmt) visit(ctx.deleteStmt()), ctx);
     } else if (ctx.expr() != null) {
       Expr expression = (Expr) visit(ctx.expr());
-      ExprStmt exprStmt = new ExprStmt(expression);
+      ExprStmt exprStmt = at(new ExprStmt(expression), ctx);
       return exprStmt;
     }
 
@@ -517,7 +579,7 @@ public class ASTBuildVisitor extends MiniCppBaseVisitor<Object> {
       statements.add((Stmt) visit(statement));
     }
 
-    BlockStmt blockStmt = new BlockStmt(statements);
+    BlockStmt blockStmt = at(new BlockStmt(statements), ctx);
 
     return blockStmt;
   }
@@ -532,7 +594,7 @@ public class ASTBuildVisitor extends MiniCppBaseVisitor<Object> {
       elseBranch = (Stmt) visit(ctx.statement(1));
     }
 
-    IfStmt ifStmt = new IfStmt(condition, ifBranch, elseBranch);
+    IfStmt ifStmt = at(new IfStmt(condition, ifBranch, elseBranch), ctx);
 
     return ifStmt;
   }
@@ -542,7 +604,7 @@ public class ASTBuildVisitor extends MiniCppBaseVisitor<Object> {
     Expr condition = (Expr) visit(ctx.expr());
     Stmt body = (Stmt) visit(ctx.statement());
 
-    WhileStmt whileStmt = new WhileStmt(condition, body);
+    WhileStmt whileStmt = at(new WhileStmt(condition, body), ctx);
 
     return whileStmt;
   }
@@ -564,19 +626,42 @@ public class ASTBuildVisitor extends MiniCppBaseVisitor<Object> {
 
     if (ctx.ASSIGN() != null) {
       value = (Expr) visit(ctx.expr());
+    } else if (ctx.argList() != null) {
+      // direct initialization 'T x(a, b);' is sugar for 'T x = T(a, b);'
+      List<Expr> args = new ArrayList<>();
+
+      for (ExprContext e : ctx.argList().expr()) {
+        args.add((Expr) visit(e));
+      }
+
+      if (type instanceof ClassType) {
+        VarExpr typeName = at(new VarExpr(type.getName()), ctx.type());
+        value = at(new CallExpr(typeName, args), ctx);
+      } else {
+        value = at(new ErrorExpr("direct initialization 'T x(...)' is only supported for class types"), ctx);
+      }
     }
 
-    VariableStmt variableStmt = new VariableStmt(new VariableDecl(name, type, value));
+    VariableDecl decl = at(new VariableDecl(name, type, value), ctx);
+    VariableStmt variableStmt = at(new VariableStmt(decl), ctx);
 
     return variableStmt;
   }
 
   @Override
   public Object visitReturnStmt(ReturnStmtContext ctx) {
-    Expr returnValue = (Expr) visit(ctx.expr());
-    ReturnStmt returnStmt = new ReturnStmt(returnValue);
+    Expr returnValue = ctx.expr() == null ? null : (Expr) visit(ctx.expr());
+    ReturnStmt returnStmt = at(new ReturnStmt(returnValue), ctx);
 
     return returnStmt;
+  }
+
+  @Override
+  public Object visitDeleteStmt(DeleteStmtContext ctx) {
+    Expr pointer = (Expr) visit(ctx.expr());
+    DeleteStmt deleteStmt = at(new DeleteStmt(pointer), ctx);
+
+    return deleteStmt;
   }
 
   // Other
@@ -604,13 +689,15 @@ public class ASTBuildVisitor extends MiniCppBaseVisitor<Object> {
 
   @Override
   public Object visitType(TypeContext ctx) {
-    if (ctx.baseType() != null) {
-      return visit(ctx.baseType());
+    Type type = ctx.baseType() != null
+        ? (Type) visit(ctx.baseType())
+        : new ClassType(ctx.Identifier().getText());
+
+    for (int i = 0; i < ctx.STAR().size(); i++) {
+      type = new PointerType(type);
     }
 
-    ClassType classType = new ClassType(ctx.Identifier().getText());
-
-    return classType;
+    return type;
   }
 
   @Override
@@ -621,4 +708,50 @@ public class ASTBuildVisitor extends MiniCppBaseVisitor<Object> {
     return referenceType;
   }
 
+  // Helpers
+
+  private static <N extends AstNode> N at(N node, ParserRuleContext ctx) {
+    Token start = ctx.getStart();
+    Token stop = ctx.getStop() != null ? ctx.getStop() : start;
+    node.setRange(start.getLine(), start.getCharPositionInLine(),
+        stop.getLine(), stop.getCharPositionInLine() + Math.max(1, stop.getText().length()));
+    return node;
+  }
+
+  // range from the start of 'from' to the end of 'to'
+  private static <N extends AstNode> N span(N node, AstNode from, ParserRuleContext to) {
+    at(node, to);
+    node.setRange(from.getLine(), from.getColumn(), node.getEndLine(), node.getEndColumn());
+    return node;
+  }
+
+  private static <N extends AstNode> N span(N node, AstNode from, AstNode to) {
+    node.setRange(from.getLine(), from.getColumn(), to.getEndLine(), to.getEndColumn());
+    return node;
+  }
+
+  public static String unescape(String body) {
+    StringBuilder out = new StringBuilder();
+
+    for (int i = 0; i < body.length(); i++) {
+      char c = body.charAt(i);
+
+      if (c != '\\' || i + 1 >= body.length()) {
+        out.append(c);
+        continue;
+      }
+
+      char escaped = body.charAt(++i);
+      out.append(switch (escaped) {
+        case 'n' -> '\n';
+        case 't' -> '\t';
+        case 'r' -> '\r';
+        case 'b' -> '\b';
+        case '0' -> '\0';
+        default -> escaped;
+      });
+    }
+
+    return out.toString();
+  }
 }

@@ -13,6 +13,26 @@ public class MethodDecl extends Decl {
   private List<ParameterDecl> parameters;
   private BlockStmt body;
   private boolean isVirtual;
+  private ClassDecl owner;
+
+  public ClassDecl getOwner() {
+    return owner;
+  }
+
+  public void setOwner(ClassDecl owner) {
+    this.owner = owner;
+  }
+
+  // virtual either explicitly or by overriding a virtual base method
+  private boolean effectivelyVirtual;
+
+  public boolean isEffectivelyVirtual() {
+    return effectivelyVirtual;
+  }
+
+  public void setEffectivelyVirtual(boolean effectivelyVirtual) {
+    this.effectivelyVirtual = effectivelyVirtual;
+  }
 
   public MethodDecl(Type returnType, String name, List<ParameterDecl> parameters, BlockStmt body, boolean isVirtual) {
     this.returnType = returnType;
