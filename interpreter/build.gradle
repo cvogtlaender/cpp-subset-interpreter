@@ -50,3 +50,11 @@ test {
         exceptionFormat 'full'
     }
 }
+
+// the antlr plugin adds the whole ANTLR tool to 'api'; only the runtime is needed
+// at run time, so keep the tool out of the classpath of distributions and dependents
+configurations {
+    api {
+        extendsFrom = extendsFrom.findAll { it != configurations.antlr }
+    }
+}

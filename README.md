@@ -204,7 +204,12 @@ Präzisierungen der Sprache, wo die Anforderungen offen waren:
 ./gradlew :lsp:installDist          # erzeugt lsp/build/install/minicpp-lsp/bin/minicpp-lsp
 cd vscode && npm install && npm run compile
 code vscode                         # dann F5: startet VS Code mit der Extension und öffnet examples/
+
+cd vscode && npm run package        # erzeugt vscode/minicpp-1.0.0.vsix (Server enthalten, benötigt Java 21+)
+code --install-extension vscode/minicpp-1.0.0.vsix
 ```
+
+Das `.vsix` bündelt den Server aus `lsp/build/install` (vorher `./gradlew :lsp:installDist`) und startet ihn direkt mit `java`; das Java-Programm lässt sich mit `minicpp.java.path` festlegen, sonst gelten `JAVA_HOME` und der `PATH`.
 
 Die Extension registriert die Sprache `minicpp` für `*.mcpp`; in `examples/` ordnet `.vscode/settings.json` auch `*.cpp` MiniC++ zu. Der Serverpfad lässt sich mit der Einstellung `minicpp.server.path` überschreiben, `minicpp.trace.server` protokolliert die JSON-RPC-Nachrichten.
 
