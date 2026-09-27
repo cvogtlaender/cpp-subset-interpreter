@@ -32,15 +32,6 @@ public final class Positions {
     return new Range(new Position(line - 1, column), new Position(endLine - 1, endColumn));
   }
 
-  /** True if the LSP position lies within the node's source range. */
-  public static boolean contains(AstNode node, Position position) {
-    int line = position.getLine() + 1;
-    int column = position.getCharacter();
-    boolean afterStart = line > node.getLine() || line == node.getLine() && column >= node.getColumn();
-    boolean beforeEnd = line < node.getEndLine() || line == node.getEndLine() && column < node.getEndColumn();
-    return afterStart && beforeEnd;
-  }
-
   public static org.eclipse.lsp4j.Diagnostic toLsp(Diagnostic d) {
     org.eclipse.lsp4j.Diagnostic result = new org.eclipse.lsp4j.Diagnostic(
         range(d.line(), d.column(), d.endLine(), d.endColumn()), d.message());

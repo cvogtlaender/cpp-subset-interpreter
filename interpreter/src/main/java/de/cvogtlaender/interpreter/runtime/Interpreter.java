@@ -95,9 +95,6 @@ public class Interpreter implements AstVisitor<Object> {
     this.out = out;
   }
 
-  // Entry points
-
-  /** Runs {@code main()} and returns the process exit code. */
   public int run(Program program) {
     FunctionDecl main = findMain();
     Object result = guard(() -> invoke(main.getParameters(), new Cell[0], main.getBody(), null,
@@ -106,10 +103,6 @@ public class Interpreter implements AstVisitor<Object> {
     return result instanceof Integer i ? i : 0;
   }
 
-  /**
-   * REPL: runs the body of {@code main()} directly in the session frame, so
-   * that its local variables stay accessible afterwards. Returns main's result.
-   */
   public Object runMainInSession(FunctionDecl main) {
     Object result = guard(() -> {
       frame = sessionFrame;
@@ -212,7 +205,9 @@ public class Interpreter implements AstVisitor<Object> {
     }
   }
 
-  /** Ends the lifetime of the current frame's cells created since {@code mark}. */
+  /**
+   * Ends the lifetime of the current frame's cells created since {@code mark}.
+   */
   private void endScope(int mark) {
     List<Cell> owned = frame.owned;
     if (owned.size() > mark) {
@@ -528,7 +523,9 @@ public class Interpreter implements AstVisitor<Object> {
     return (ObjectValue) (m.isArrow() ? deref(value, m).value : value);
   }
 
-  /** The cell a pointer points to; fails for null, dangling and deleted pointers. */
+  /**
+   * The cell a pointer points to; fails for null, dangling and deleted pointers.
+   */
   private static Cell deref(Object pointer, AstNode at) {
     Cell target = ((Pointer) pointer).target();
     if (target == null) {

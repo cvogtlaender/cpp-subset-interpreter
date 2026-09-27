@@ -3,9 +3,12 @@ package de.cvogtlaender.lsp;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
+import org.eclipse.lsp4j.CodeActionKind;
+import org.eclipse.lsp4j.CodeActionOptions;
 import org.eclipse.lsp4j.CompletionOptions;
 import org.eclipse.lsp4j.InitializeParams;
 import org.eclipse.lsp4j.InitializeResult;
+import org.eclipse.lsp4j.RenameOptions;
 import org.eclipse.lsp4j.ServerCapabilities;
 import org.eclipse.lsp4j.ServerInfo;
 import org.eclipse.lsp4j.TextDocumentSyncKind;
@@ -44,15 +47,19 @@ public class MiniCppLanguageServer implements LanguageServer, LanguageClientAwar
   @Override
   public CompletableFuture<InitializeResult> initialize(InitializeParams params) {
     ServerCapabilities capabilities = new ServerCapabilities();
-    // TODO: switch to Incremental once documents apply range edits
-    capabilities.setTextDocumentSync(TextDocumentSyncKind.Full);
+    capabilities.setTextDocumentSync(TextDocumentSyncKind.Incremental);
     capabilities.setHoverProvider(true);
-    capabilities.setDefinitionProvider(true);
     capabilities.setCompletionProvider(new CompletionOptions(false, List.of(".", ">")));
-    // TODO: references, formatting, rename, codeAction (see README feature table)
+    capabilities.setDefinitionProvider(true);
+    capabilities.setReferencesProvider(true);
+    capabilities.setDocumentHighlightProvider(true);
+    capabilities.setDocumentSymbolProvider(true);
+    capabilities.setRenameProvider(new RenameOptions(true));
+    capabilities.setDocumentFormattingProvider(true);
+    capabilities.setCodeActionProvider(new CodeActionOptions(List.of(CodeActionKind.QuickFix)));
 
     return CompletableFuture.completedFuture(
-        new InitializeResult(capabilities, new ServerInfo("minicpp-lsp", "0.1.0")));
+        new InitializeResult(capabilities, new ServerInfo("minicpp-lsp", "1.0.0")));
   }
 
   @Override

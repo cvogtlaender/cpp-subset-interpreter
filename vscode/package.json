@@ -1,7 +1,7 @@
 {
   "name": "minicpp",
   "displayName": "MiniC++",
-  "description": "Language support for MiniC++ (diagnostics, hover, completion, go-to-definition)",
+  "description": "Language support for MiniC++ (diagnostics, hover, completion, navigation, rename, formatting, quick fixes)",
   "version": "0.1.0",
   "publisher": "cvogtlaender",
   "license": "MIT",

@@ -21,19 +21,6 @@ import com.sun.net.httpserver.HttpServer;
 
 import de.cvogtlaender.mcp.provider.GenAiException;
 
-/**
- * REST server for the GenAI code assistance.
- *
- * <pre>
- * POST /complete     {"code", "line", "column"} -> {"completion"}
- * POST /explain      {"code"}                   -> {"explanation"}
- * POST /refactor     {"code", "instruction"?}   -> {"code", "rationale", "compiles", "diagnostics"}
- * POST /detect-bugs  {"code"}                   -> {"compilerDiagnostics", "findings", "analysis"}
- * GET  /health                                  -> {"status", "provider", "model", "providerAvailable"}
- * </pre>
- *
- * Lines are 1-based, columns 0-based. Errors are returned as {"error": "..."}.
- */
 public class McpServer {
 
   private static final int MAX_BODY_BYTES = 1 << 20;

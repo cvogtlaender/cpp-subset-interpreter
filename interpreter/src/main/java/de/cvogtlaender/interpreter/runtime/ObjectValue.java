@@ -8,11 +8,6 @@ import de.cvogtlaender.interpreter.ast.declaration.ClassDecl;
 import de.cvogtlaender.interpreter.ast.declaration.FieldDecl;
 import de.cvogtlaender.interpreter.semantic.GlobalScope;
 
-/**
- * A class instance: its runtime class plus one cell per field (inherited
- * fields included). Objects have value semantics; {@link #copy()} is used
- * whenever C++ would copy.
- */
 public final class ObjectValue {
 
   private final ClassDecl cls;
@@ -54,7 +49,10 @@ public final class ObjectValue {
     return result;
   }
 
-  /** A copy containing only the part of this object that belongs to {@code target}. */
+  /**
+   * A copy containing only the part of this object that belongs to
+   * {@code target}.
+   */
   public ObjectValue sliceTo(ClassDecl target) {
     ObjectValue result = new ObjectValue(target);
     for (FieldDecl f : GlobalScope.allFields(target)) {

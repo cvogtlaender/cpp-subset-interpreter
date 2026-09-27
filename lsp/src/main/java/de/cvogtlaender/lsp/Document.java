@@ -1,19 +1,23 @@
 package de.cvogtlaender.lsp;
 
+import java.util.List;
+
+import org.eclipse.lsp4j.TextDocumentContentChangeEvent;
+
 import de.cvogtlaender.interpreter.MiniCpp;
 
 /**
- * An open text document and the result of its latest analysis.
+ * An open text document and the analysis of its current text.
  *
- * {@link #compilation()} may lag behind {@link #text()} while an analysis is
- * pending, and its program is null if the text has syntax errors.
+ * The analysis is computed lazily: by the debounced background analysis
+ * after edits, or on demand when a request needs the current state.
  */
 public final class Document {
 
   private final String uri;
-  private volatile String text;
-  private volatile int version;
-  private volatile MiniCpp.Compilation compilation;
+  private String text;
+  private int version;
+  private Analysis analysis;
 
   public Document(String uri, String text, int version) {
     this.uri = uri;
@@ -25,24 +29,39 @@ public final class Document {
     return uri;
   }
 
-  public String text() {
+  public synchronized String text() {
     return text;
   }
 
-  public int version() {
+  public synchronized int version() {
     return version;
   }
 
-  public MiniCpp.Compilation compilation() {
-    return compilation;
+  /** The compilation of the latest analysis, which may lag behind the text. */
+  public synchronized MiniCpp.Compilation compilation() {
+    return analysis == null ? null : analysis.compilation();
   }
 
-  synchronized void update(String text, int version) {
-    this.text = text;
+  /** Applies full or incremental changes in order and sets the new version. */
+  synchronized void update(List<TextDocumentContentChangeEvent> changes, int version) {
+    for (TextDocumentContentChangeEvent change : changes) {
+      if (change.getRange() == null) {
+        text = change.getText();
+      } else {
+        SourceText source = new SourceText(text);
+        int start = source.offset(change.getRange().getStart());
+        int end = Math.max(start, source.offset(change.getRange().getEnd()));
+        text = text.substring(0, start) + change.getText() + text.substring(end);
+      }
+    }
     this.version = version;
   }
 
-  void setCompilation(MiniCpp.Compilation compilation) {
-    this.compilation = compilation;
+  /** The analysis of the current text, computing it if necessary. */
+  public synchronized Analysis analysis() {
+    if (analysis == null || analysis.text().text() != text) {
+      analysis = Analysis.of(text, version, analysis);
+    }
+    return analysis;
   }
 }

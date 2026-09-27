@@ -8,7 +8,11 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Function;
 
+import org.eclipse.lsp4j.CodeAction;
+import org.eclipse.lsp4j.CodeActionParams;
+import org.eclipse.lsp4j.Command;
 import org.eclipse.lsp4j.CompletionItem;
 import org.eclipse.lsp4j.CompletionList;
 import org.eclipse.lsp4j.CompletionParams;
@@ -17,26 +21,35 @@ import org.eclipse.lsp4j.DidChangeTextDocumentParams;
 import org.eclipse.lsp4j.DidCloseTextDocumentParams;
 import org.eclipse.lsp4j.DidOpenTextDocumentParams;
 import org.eclipse.lsp4j.DidSaveTextDocumentParams;
+import org.eclipse.lsp4j.DocumentFormattingParams;
+import org.eclipse.lsp4j.DocumentHighlight;
+import org.eclipse.lsp4j.DocumentHighlightParams;
+import org.eclipse.lsp4j.DocumentSymbol;
+import org.eclipse.lsp4j.DocumentSymbolParams;
 import org.eclipse.lsp4j.Hover;
 import org.eclipse.lsp4j.HoverParams;
 import org.eclipse.lsp4j.Location;
 import org.eclipse.lsp4j.LocationLink;
+import org.eclipse.lsp4j.PrepareRenameDefaultBehavior;
+import org.eclipse.lsp4j.PrepareRenameParams;
+import org.eclipse.lsp4j.PrepareRenameResult;
 import org.eclipse.lsp4j.PublishDiagnosticsParams;
+import org.eclipse.lsp4j.Range;
+import org.eclipse.lsp4j.ReferenceParams;
+import org.eclipse.lsp4j.RenameParams;
+import org.eclipse.lsp4j.SymbolInformation;
+import org.eclipse.lsp4j.TextEdit;
+import org.eclipse.lsp4j.WorkspaceEdit;
 import org.eclipse.lsp4j.jsonrpc.messages.Either;
+import org.eclipse.lsp4j.jsonrpc.messages.Either3;
 import org.eclipse.lsp4j.services.LanguageClient;
 import org.eclipse.lsp4j.services.TextDocumentService;
 
-import de.cvogtlaender.interpreter.MiniCpp;
-
 /**
  * Document synchronization and per-document features. Every change schedules
- * a debounced re-analysis with {@link MiniCpp#compile}, whose diagnostics are
- * published to the client.
- *
- * Features beyond diagnostics are stubs. After a successful analysis the AST
- * is fully resolved, see "Hinweise für den LSP-Server" in the README:
- * {@code VarExpr.getResolvedDecl()}, {@code CallExpr.getTarget()},
- * {@code MemberAccessExpr.getResolvedField()}, {@code Expr.getInferredType()}.
+ * a debounced re-analysis with {@code MiniCpp.compile}, whose diagnostics are
+ * published to the client. Requests use the analysis of the current text,
+ * computing it right away if the debounced one is still pending.
  */
 public class MiniCppTextDocumentService implements TextDocumentService {
 
@@ -81,9 +94,7 @@ public class MiniCppTextDocumentService implements TextDocumentService {
     if (doc == null || params.getContentChanges().isEmpty()) {
       return;
     }
-    // full sync: the last change holds the complete new text
-    String text = params.getContentChanges().get(params.getContentChanges().size() - 1).getText();
-    doc.update(text, params.getTextDocument().getVersion());
+    doc.update(params.getContentChanges(), params.getTextDocument().getVersion());
     scheduleAnalysis(doc.uri(), debounceMillis);
   }
 
@@ -115,20 +126,11 @@ public class MiniCppTextDocumentService implements TextDocumentService {
     if (doc == null) {
       return;
     }
-    int version = doc.version();
-    MiniCpp.Compilation compilation;
-    try {
-      compilation = MiniCpp.compile(doc.text());
-    } catch (RuntimeException | StackOverflowError e) {
-      // never let a crash in the pipeline take down the server
-      System.err.println("analysis of " + uri + " failed: " + e);
-      return;
+    Analysis analysis = doc.analysis();
+    if (analysis.compilation() == null || analysis.version() != doc.version()) {
+      return; // crashed (logged), or edited meanwhile and a newer analysis is scheduled
     }
-    if (doc.version() != version) {
-      return; // edited meanwhile; a newer analysis is scheduled
-    }
-    doc.setCompilation(compilation);
-    publish(uri, compilation.diagnostics().stream().map(Positions::toLsp).toList(), version);
+    publish(uri, analysis.compilation().diagnostics().stream().map(Positions::toLsp).toList(), analysis.version());
   }
 
   private void publish(String uri, List<org.eclipse.lsp4j.Diagnostic> diagnostics, Integer version) {
@@ -137,28 +139,95 @@ public class MiniCppTextDocumentService implements TextDocumentService {
     }
   }
 
+  /** Runs a request against the current analysis of a document; {@code empty} if it is not open. */
+  private <T> CompletableFuture<T> withAnalysis(String uri, T empty, Function<Analysis, T> request) {
+    return CompletableFuture.supplyAsync(() -> {
+      Document doc = documents.get(uri);
+      if (doc == null) {
+        return empty;
+      }
+      return request.apply(doc.analysis());
+    });
+  }
+
   // Features
 
   @Override
   public CompletableFuture<Hover> hover(HoverParams params) {
-    // TODO: find the innermost expression at params.getPosition() (see
-    // Positions.contains) and show its getInferredType(), or the declaration
-    // it resolves to
-    return CompletableFuture.completedFuture(null);
+    return withAnalysis(params.getTextDocument().getUri(), null,
+        analysis -> Hovers.hover(analysis, params.getPosition()));
   }
 
   @Override
   public CompletableFuture<Either<List<CompletionItem>, CompletionList>> completion(CompletionParams params) {
-    // TODO: keywords, variables in scope, functions/classes from
-    // compilation.globals(), members after '.' and '->'
-    return CompletableFuture.completedFuture(Either.forLeft(List.of()));
+    return withAnalysis(params.getTextDocument().getUri(), Either.forLeft(List.of()),
+        analysis -> Either.forLeft(Completions.complete(analysis, params.getPosition())));
   }
 
   @Override
   public CompletableFuture<Either<List<? extends Location>, List<? extends LocationLink>>> definition(
       DefinitionParams params) {
-    // TODO: resolve the identifier at the position to its Decl and return
-    // new Location(uri, Positions.range(decl))
-    return CompletableFuture.completedFuture(Either.forLeft(List.of()));
+    String uri = params.getTextDocument().getUri();
+    return withAnalysis(uri, Either.forLeft(List.of()),
+        analysis -> Either.forLeft(Navigation.definition(uri, analysis, params.getPosition())));
+  }
+
+  @Override
+  public CompletableFuture<List<? extends Location>> references(ReferenceParams params) {
+    String uri = params.getTextDocument().getUri();
+    boolean includeDeclaration = params.getContext() == null || params.getContext().isIncludeDeclaration();
+    return withAnalysis(uri, List.of(),
+        analysis -> Navigation.references(uri, analysis, params.getPosition(), includeDeclaration));
+  }
+
+  @Override
+  public CompletableFuture<List<? extends DocumentHighlight>> documentHighlight(DocumentHighlightParams params) {
+    return withAnalysis(params.getTextDocument().getUri(), List.of(),
+        analysis -> Navigation.highlights(analysis, params.getPosition()));
+  }
+
+  @Override
+  public CompletableFuture<Either3<Range, PrepareRenameResult, PrepareRenameDefaultBehavior>> prepareRename(
+      PrepareRenameParams params) {
+    return withAnalysis(params.getTextDocument().getUri(), null, analysis -> {
+      Range range = Navigation.prepareRename(analysis, params.getPosition());
+      return range == null ? null : Either3.forFirst(range);
+    });
+  }
+
+  @Override
+  public CompletableFuture<WorkspaceEdit> rename(RenameParams params) {
+    String uri = params.getTextDocument().getUri();
+    return withAnalysis(uri, null,
+        analysis -> Navigation.rename(uri, analysis, params.getPosition(), params.getNewName()));
+  }
+
+  @Override
+  public CompletableFuture<List<Either<SymbolInformation, DocumentSymbol>>> documentSymbol(
+      DocumentSymbolParams params) {
+    return withAnalysis(params.getTextDocument().getUri(), List.of(),
+        analysis -> Navigation.documentSymbols(analysis).stream()
+            .map(Either::<SymbolInformation, DocumentSymbol>forRight).toList());
+  }
+
+  @Override
+  public CompletableFuture<List<? extends TextEdit>> formatting(DocumentFormattingParams params) {
+    return withAnalysis(params.getTextDocument().getUri(), List.of(), analysis -> {
+      String text = analysis.text().text();
+      String formatted = CodeFormatter.format(text, params.getOptions().getTabSize(),
+          params.getOptions().isInsertSpaces());
+      if (formatted == null || formatted.equals(text)) {
+        return List.of();
+      }
+      return List.of(new TextEdit(analysis.text().wholeDocument(), formatted));
+    });
+  }
+
+  @Override
+  public CompletableFuture<List<Either<Command, CodeAction>>> codeAction(CodeActionParams params) {
+    String uri = params.getTextDocument().getUri();
+    return withAnalysis(uri, List.of(),
+        analysis -> CodeActions.quickFixes(uri, analysis, params.getContext().getDiagnostics()).stream()
+            .map(Either::<Command, CodeAction>forRight).toList());
   }
 }

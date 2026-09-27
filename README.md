@@ -176,15 +176,29 @@ Präzisierungen der Sprache, wo die Anforderungen offen waren:
 
 ### LSP-Server (`lsp/`, `vscode/`)
 
-Grundgerüst: `lsp/` ist der Server (LSP4J, JSON-RPC über stdin/stdout), `vscode/` der Client (`vscode-languageclient`). Bereits umgesetzt ist `publishDiagnostics` (Full-Sync, 200 ms Debouncing, Fehler aller Phasen); `hover`, `completion` und `definition` sind angemeldet, liefern aber noch nichts (`TODO` in `MiniCppTextDocumentService`).
+`lsp/` ist der Server (LSP4J, JSON-RPC über stdin/stdout), `vscode/` der Client (`vscode-languageclient`). Alle Features der Tabelle oben sind umgesetzt, dazu `documentHighlight` und `documentSymbol` (Outline):
+
+| Feature | Verhalten |
+|---|---|
+| Synchronisation | inkrementell (Bereichsänderungen), Re-Analyse 200 ms nach der letzten Änderung; Anfragen analysieren sofort, falls die entprellte Analyse noch aussteht |
+| `publishDiagnostics` | Fehler aller Phasen (Syntax, Namen, Typen) |
+| `hover` | Deklaration als C++-Signatur mit Art (`local variable`, `virtual method`, `overrides B::f` …); an Operatoren und Literalen der statische Typ des Ausdrucks |
+| `completion` | Variablen und Parameter im Gültigkeitsbereich, Members der eigenen Klasse, Funktionen, Klassen, Keywords, Typen; nach `.`/`->` die Members (inkl. geerbter) des Objekts, auch über Ketten wie `a.b->c().`. Da unvollständiger Code (`a.`) nicht parst, stammen die Symbole aus der letzten parsebaren Version |
+| `definition` | gewählte Überladung, statisch gebundene Methode, Konstruktor bei `A(…)`/`new A` (bei implizitem Konstruktor die Klasse) |
+| `references`, `documentHighlight`, `rename` | Klassen samt Konstruktornamen und Typverwendungen, überschreibende virtuelle Methoden gemeinsam mit der Basismethode; Built-ins und Keywords sind nicht umbenennbar |
+| `formatting` | auf Basis des Parse-Trees: K&R-Klammern, `public:` auf Klassenebene, Rümpfe ohne Klammern eingerückt in eigener Zeile, `T* p`, Leerzeichen um binäre Operatoren; Kommentare und einzelne Leerzeilen bleiben erhalten. Code mit Syntaxfehlern wird nicht formatiert |
+| `codeAction` | Quick Fixes: fehlendes Token einfügen, überzähliges entfernen, ähnlich geschriebenen Namen vorschlagen (Bezeichner, Typen, Members), `.` → `->`, `()` an Methodennamen, leeres `main` ergänzen |
 
 | Klasse | Inhalt |
 |---|---|
 | `MiniCppLanguageServerMain` | Start über stdio |
 | `MiniCppLanguageServer` | Lebenszyklus (`initialize`, `shutdown`, `exit`) und Capabilities |
-| `MiniCppTextDocumentService` | Dokument-Synchronisation, entprellte Analyse per `MiniCpp.compile`, Feature-Stubs |
-| `Document` | offenes Dokument mit Text, Version und letzter `Compilation` |
-| `Positions` | Umrechnung Interpreter-Positionen (Zeile 1-basiert) ↔ LSP (0-basiert), Diagnosen |
+| `MiniCppTextDocumentService` | Dokument-Synchronisation, entprellte Diagnosen, Verteilung der Anfragen |
+| `Document`, `Analysis` | offenes Dokument; Analyse einer Version (Tokens, `Compilation`, Symbolindex, letzte parsebare Version) |
+| `SymbolIndex` | jeder Bezeichner mit der Deklaration, auf die er verweist (aus aufgelöstem AST und Token-Strom) |
+| `AstNodes`, `Names` | AST-Traversierung, Gültigkeitsbereich an einer Position; Signaturen und Beschreibungen |
+| `Hovers`, `Completions`, `Navigation`, `CodeFormatter`, `CodeActions` | die Features |
+| `SourceText`, `Tokens`, `Positions` | Umrechnung Offsets ↔ Positionen (Interpreter 1-basiert, LSP 0-basiert), Token-Suche, Diagnosen |
 
 ```sh
 ./gradlew :lsp:installDist          # erzeugt lsp/build/install/minicpp-lsp/bin/minicpp-lsp
