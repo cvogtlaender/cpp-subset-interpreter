@@ -166,6 +166,14 @@ public class Interpreter implements AstVisitor<Object> {
     }
   }
 
+  // loops and calls are the only ways to run indefinitely, so checking there makes
+  // an interrupt (e.g. a time limit of the caller) stop the program
+  private static void checkInterrupted(AstNode at) {
+    if (Thread.currentThread().isInterrupted()) {
+      throw new MiniCppRuntimeException("execution interrupted", at);
+    }
+  }
+
   private FunctionDecl findMain() {
     List<FunctionDecl> mains = globals.getFunctions().get("main");
     if (mains != null) {
@@ -193,6 +201,7 @@ public class Interpreter implements AstVisitor<Object> {
       callDepth--;
       throw new MiniCppRuntimeException("stack overflow (more than " + MAX_CALL_DEPTH + " nested calls)", body);
     }
+    checkInterrupted(body);
     Frame saved = frame;
     frame = callee;
     try {
@@ -429,6 +438,7 @@ public class Interpreter implements AstVisitor<Object> {
   @Override
   public Object visitWhileStmt(WhileStmt node) {
     while (truthy(node.getCondition().accept(this))) {
+      checkInterrupted(node);
       Object r = node.getBody().accept(this);
       if (r != null) {
         return r;

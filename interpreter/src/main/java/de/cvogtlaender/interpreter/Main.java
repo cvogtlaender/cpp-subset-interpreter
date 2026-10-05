@@ -8,7 +8,6 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
-import de.cvogtlaender.interpreter.cpp.CppExporter;
 import de.cvogtlaender.interpreter.diagnostic.Diagnostic;
 import de.cvogtlaender.interpreter.repl.Repl;
 
@@ -43,9 +42,6 @@ public class Main {
         }
         case "ast" -> {
           return args.length == 2 ? ast(args[1], out, err) : usage(err);
-        }
-        case "to-cpp" -> {
-          return args.length == 2 ? toCpp(args[1], out, err) : usage(err);
         }
         case "repl" -> {
           return args.length <= 2 ? repl(args.length == 2 ? args[1] : null, out, err) : usage(err);
@@ -92,17 +88,6 @@ public class Main {
       return 1;
     }
     out.println(((de.cvogtlaender.interpreter.ast.Program) parsed.tree()).toStringTree());
-    return 0;
-  }
-
-  private static int toCpp(String file, PrintStream out, PrintStream err) throws IOException {
-    MiniCpp.Compilation compilation = MiniCpp.compile(Files.readString(Path.of(file)));
-    report(file, compilation.diagnostics(), err);
-    if (compilation.hasErrors()) {
-      return 1;
-    }
-    out.print(CppExporter.export(compilation.program()));
-    out.flush();
     return 0;
   }
 

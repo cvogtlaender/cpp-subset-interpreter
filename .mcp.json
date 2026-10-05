@@ -1,0 +1,15 @@
+{
+  "mcpServers": {
+    "minicpp": {
+      "type": "stdio",
+      "command": "java",
+      "args": [
+        "-cp",
+        "mcp/build/install/minicpp-mcp/lib/*",
+        "de.cvogtlaender.mcp.McpServerMain",
+        "--transport",
+        "stdio"
+      ]
+    }
+  }
+}

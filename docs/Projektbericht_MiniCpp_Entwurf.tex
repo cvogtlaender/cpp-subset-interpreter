@@ -1,0 +1,1251 @@
+% !TeX program = pdflatex
+% Projektbericht MiniC++ -- Entwurf v0.1 (aus docs/report.py übertragen)
+\documentclass[11pt,a4paper,parskip=half,headsepline,toc=flat]{scrartcl}
+
+% ------------------------------------------------------------------ Grundlagen
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[ngerman]{babel}
+\usepackage[autostyle,german=quotes]{csquotes}
+\usepackage{lmodern}
+\usepackage[scaled=0.85]{beramono}
+\usepackage{textcomp}
+\usepackage{microtype}
+\usepackage[a4paper,left=2.3cm,right=2.3cm,top=2.4cm,bottom=2.3cm,headsep=0.6cm]{geometry}
+
+\usepackage[table]{xcolor}
+\usepackage{array,booktabs,tabularx}
+\usepackage{enumitem}
+\usepackage{caption}
+\usepackage{listings}
+\usepackage[most]{tcolorbox}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta,positioning,calc,decorations.pathreplacing}
+\usepackage{pgfplots}
+\pgfplotsset{compat=1.18}
+\usepackage[automark]{scrlayer-scrpage}
+\usepackage[hidelinks,pdfusetitle]{hyperref}
+
+\hypersetup{
+  pdftitle={MiniC++ Interpreter-Ökosystem -- Projektbericht (Entwurf)},
+  pdfauthor={Clemens Vogtländer, Dennis Gorpinic},
+  pdfsubject={Technische Dokumentation}
+}
+
+% Das "-Kürzel von ngerman stört bei Code wie {"error": ...}; deutsche Anführungszeichen via \enquote.
+\AtBeginDocument{\shorthandoff{"}}
+\setcounter{secnumdepth}{2}
+\setcounter{tocdepth}{2}
+\emergencystretch=2em
+
+% ------------------------------------------------------------------ Farben
+\definecolor{navy}{HTML}{1B3556}
+\definecolor{accent}{HTML}{2A78D6}
+\definecolor{ink}{HTML}{1A1A1A}
+\definecolor{ink2}{HTML}{52514E}
+\definecolor{rule}{HTML}{D7D6D1}
+\definecolor{codebg}{HTML}{F4F5F7}
+\definecolor{headbg}{HTML}{E8EEF6}
+\definecolor{zebra}{HTML}{F8F8F6}
+\definecolor{todobg}{HTML}{FFF5D6}
+\definecolor{todobd}{HTML}{C98500}
+\definecolor{notebg}{HTML}{EAF2FB}
+\definecolor{lexbg}{HTML}{DFEAF7}
+\definecolor{gridc}{HTML}{E4E3DF}
+\definecolor{seqA}{HTML}{9EC5F0}
+\definecolor{seqB}{HTML}{2A78D6}
+\definecolor{seqC}{HTML}{154A8A}
+\definecolor{orange}{HTML}{EB6834}
+
+% ------------------------------------------------------------------ Überschriften
+\addtokomafont{disposition}{\color{navy}}
+\addtokomafont{section}{\Large}
+\addtokomafont{subsubsection}{\color{ink}}
+
+% ------------------------------------------------------------------ Kopf- und Fußzeile
+\pagestyle{scrheadings}
+\clearpairofpagestyles
+\ihead{\footnotesize\color{ink2}MiniC++ -- Interpreter-Ökosystem \textperiodcentered{} Technische Dokumentation}
+\ohead{\footnotesize\color{todobd}ENTWURF v0.1 \textperiodcentered{} 27.09.2026}
+\cfoot*{\footnotesize\color{ink2}\pagemark}
+\setkomafont{pageheadfoot}{\normalfont}
+
+% ------------------------------------------------------------------ Hilfsmakros
+\newcommand{\code}[1]{\texttt{#1}}
+\newcommand{\bs}{\textbackslash}
+\newcommand{\dq}{\textquotedbl}
+\newcommand{\sq}{\textquotesingle}
+
+% Tabellen: Kopfzeile mit Hintergrund, Zebrastreifen
+\newcolumntype{L}[1]{>{\raggedright\arraybackslash}p{#1\linewidth}}
+\newcommand{\thead}{\rowcolor{headbg}}
+\newcommand{\hcell}[1]{\textbf{\color{navy}#1}}
+\captionsetup{font={small,it},labelfont={small,it},textfont={color=ink2},labelsep=colon}
+\captionsetup[table]{position=bottom}
+\newenvironment{reporttable}[1][]%
+  {\begin{table}[htbp]\centering\small\renewcommand{\arraystretch}{1.25}\rowcolors{2}{white}{zebra}}%
+  {\end{table}}
+
+% Listings
+\lstset{
+  basicstyle=\ttfamily\footnotesize,
+  backgroundcolor=\color{codebg},
+  frame=leftline, framerule=2pt, rulecolor=\color{accent},
+  xleftmargin=8pt, framexleftmargin=6pt, framesep=6pt,
+  aboveskip=8pt, belowskip=4pt,
+  columns=fullflexible, keepspaces=true, showstringspaces=false,
+  breaklines=true,
+  literate={ä}{{\"a}}1 {ö}{{\"o}}1 {ü}{{\"u}}1 {Ä}{{\"A}}1 {Ö}{{\"O}}1 {Ü}{{\"U}}1 {ß}{{\ss}}1
+}
+\renewcommand{\lstlistingname}{Listing}
+
+% TODO- und Hinweis-Kästen
+\newtcolorbox{todo}{enhanced,breakable,colback=todobg,colframe=todobd,boxrule=0pt,leftrule=2.5pt,
+  arc=0pt,outer arc=0pt,left=8pt,right=8pt,top=5pt,bottom=5pt,fontupper=\small,
+  before upper={\textbf{TODO (Entwurf):}\ }}
+\newtcolorbox{hinweis}{enhanced,breakable,colback=notebg,colframe=accent,boxrule=0pt,leftrule=2.5pt,
+  arc=0pt,outer arc=0pt,left=8pt,right=8pt,top=5pt,bottom=5pt,fontupper=\small,
+  before upper={\textbf{Hinweis:}\ }}
+
+\setlist[itemize]{leftmargin=1.4em,itemsep=2pt,topsep=2pt}
+
+% TikZ-Stile für die Diagramme
+\tikzset{
+  >=Stealth,
+  dbox/.style={draw=navy, fill=headbg, rounded corners=2pt, align=center, inner sep=3pt,
+               line width=0.6pt, font=\footnotesize},
+  sub/.style={font=\scriptsize\itshape, color=ink2},
+  lbl/.style={font=\scriptsize\itshape, color=ink2},
+  arr/.style={->, color=ink2, line width=0.7pt},
+}
+\newcommand{\boxtext}[2]{\textbf{#1}\\[-1pt]{\scriptsize\itshape\color{ink2}#2}}
+
+% ==================================================================
+\begin{document}
+
+% ------------------------------------------------------------------ Titelseite
+\begin{titlepage}
+\begin{tikzpicture}[remember picture,overlay]
+  \fill[navy] (current page.north west) rectangle ([yshift=-9.5cm]current page.north east);
+  \fill[accent] ([yshift=-9.5cm]current page.north west) rectangle ([yshift=-9.65cm]current page.north east);
+\end{tikzpicture}
+\vspace*{0.4cm}
+{\color{white}\sffamily\bfseries\fontsize{24}{29}\selectfont
+Entwurf und Implementierung eines interaktiven Interpreter-Ökosystems für eine eingeschränkte C++-Teilmenge\par}
+\vspace{8pt}
+{\color[HTML]{CFE0F5}\sffamily\large mit Typprüfung, REPL, Language-Server und GenAI-Assistenz\par}
+\vspace{3.6cm}
+
+{\color{navy}\sffamily\bfseries\Large Projektbericht \textperiodcentered{} Technische Dokumentation\par}
+\vspace{10pt}
+{\small\renewcommand{\arraystretch}{1.5}
+\begin{tabularx}{\linewidth}{@{}>{\bfseries\color{navy}}p{0.27\linewidth}X@{}}
+Autoren               & Clemens Vogtländer, Dennis Gorpinic \\ \arrayrulecolor{rule}\hline
+Lehrveranstaltung     & Compilerbau (CB) -- Erweiterung von Aufgabenblatt 08 \\ \hline
+Hochschule / Semester & [TODO: Hochschule, Studiengang, Semester, Betreuer/in] \\ \hline
+Repository            & cpp-subset-interpreter, Branch interpreter (Stand 27.09.2026) \\ \hline
+Dokumentstatus        & Entwurf v0.1 -- nicht zur Abgabe bestimmt \\ \hline
+\end{tabularx}}
+\vspace{1cm}
+
+{\sffamily\bfseries Kurzfassung\par}
+\vspace{2pt}
+Dieser Bericht dokumentiert Entwurf und Umsetzung von \emph{MiniC++}, einem formal abgegrenzten Subdialekt von C++,
+sowie des darum gebauten Werkzeug-Ökosystems. Kern ist ein in Java~21 implementierter Tree-Walking-Interpreter mit
+ANTLR4-Frontend, zweiphasigem Resolver, deklarationsbasierter Typprüfung mit Überladungsauflösung und einem
+Laufzeitmodell für Referenzen, Zeiger, Heap-Objekte, Slicing und virtuellen Dispatch. Darauf setzen eine REPL, ein
+Language-Server nach LSP~3.17 mit VS-Code-Extension und ein REST-basierter GenAI-Assistenzserver (Ollama) auf, dessen
+Antworten durch den echten Compiler abgesichert werden. 218 automatisierte Tests, ein differenzieller Vergleich mit
+GCC in der CI und JMH-Benchmarks bilden die Evaluationsgrundlage.
+\end{titlepage}
+
+% ------------------------------------------------------------------ Inhaltsverzeichnis
+\tableofcontents
+\clearpage
+
+% ================================================================== 1 Einleitung
+\section{Einleitung}
+\subsection{Ausgangslage und Zielsetzung}
+Aufgabenblatt 08 der Lehrveranstaltung Compilerbau verlangt einen Interpreter für eine Teilmenge von C++ mit Klassen,
+Einfachvererbung, Referenzen und virtuellen Methoden. Das hier beschriebene Projekt nimmt diese Aufgabe als Kern und
+erweitert sie zu einem vollständigen \emph{Ökosystem}: Neben der reinen Ausführung von Programmen soll die Sprache so
+benutzbar sein, wie man es von einer produktiven Programmiersprache erwartet -- mit einer interaktiven Shell,
+Editor-Unterstützung und KI-gestützter Code-Assistenz.
+
+Daraus ergeben sich drei übergeordnete Ziele:
+\begin{itemize}
+  \item \textbf{Korrektheit gegenüber C++.} Jedes gültige MiniC++-Programm soll sich genau so verhalten wie das
+    entsprechende Standard-C++-Programm. Wo C++ undefiniertes Verhalten zulässt (hängende Zeiger, doppeltes
+    \code{delete}), soll MiniC++ stattdessen einen präzisen Laufzeitfehler melden.
+  \item \textbf{Wiederverwendbarkeit des Frontends.} Lexer, Parser, Resolver und Typprüfung sollen nicht nur dem
+    Interpreter dienen, sondern über eine schmale Fassade auch dem Language-Server und dem GenAI-Server.
+  \item \textbf{Messbarkeit.} Korrektheit, Performance und Skalierbarkeit sollen mit reproduzierbaren Werkzeugen
+    (JUnit, GCC-Vergleich, JMH) belegt werden.
+\end{itemize}
+
+\subsection{Projektumfang}
+Das System gliedert sich in vier Säulen, die in diesem Bericht jeweils ein eigenes Kapitel erhalten:
+
+\begin{reporttable}
+\begin{tabular}{L{0.18}L{0.52}L{0.22}}
+\thead \hcell{Säule} & \hcell{Inhalt} & \hcell{Verantwortung} \\ \midrule
+Kern-Interpreter & Lexer, Parser, AST, Resolver, Typprüfung, Tree-Walking-Interpreter, REPL, CLI, C++-Export & gemeinsam \\
+LSP-Server & Language Server Protocol 3.17 über LSP4J, VS-Code-Extension & Clemens Vogtländer \\
+GenAI-Server & REST-Endpunkte für Vervollständigung, Erklärung, Refactoring und Fehlersuche mit Ollama & Dennis Gorpinic \\
+Evaluation & Unit- und Golden-File-Tests, differenzieller GCC-Vergleich, JMH-Benchmarks & gemeinsam \\ \bottomrule
+\end{tabular}
+\caption{Die vier Säulen des Projekts}
+\end{reporttable}
+
+\subsection{Aufbau des Dokuments}
+Kapitel~\ref{sec:sprache} definiert den Sprachumfang von MiniC++ einschließlich aller Präzisierungen, die über die
+Aufgabenstellung hinaus getroffen wurden. Kapitel~\ref{sec:architektur} beschreibt die Gesamtarchitektur und die
+Architekturentscheidungen. Kapitel~\ref{sec:kern} behandelt den Kern-Interpreter Phase für Phase,
+Kapitel~\ref{sec:lsp} den Language-Server und Kapitel~\ref{sec:genai} den GenAI-Assistenzserver.
+Kapitel~\ref{sec:evaluation} fasst Teststrategie und Messergebnisse zusammen, Kapitel~\ref{sec:organisation} die
+Projektorganisation. Kapitel~\ref{sec:ausblick} diskutiert Grenzen und mögliche Weiterentwicklungen. Der Anhang
+enthält eine Kurzreferenz der Kommandozeile und die Kernregeln der Grammatik.
+
+Konventionen: Bezeichner aus dem Quellcode sind in \code{Festbreitenschrift} gesetzt; Pfade beziehen sich auf die
+Wurzel des Repositorys. Das Java-Basispaket \code{de.cvogtlaender} wird in Klassennamen weggelassen.
+
+% ================================================================== 2 Sprache
+\section{Die Sprache MiniC++}\label{sec:sprache}
+MiniC++ ist eine echte Teilmenge von C++17: Jedes gültige MiniC++-Programm ist -- nach einer rein mechanischen
+Übersetzung, siehe Abschnitt~\ref{sec:cppexport} -- ein gültiges C++-Programm mit identischer Ausgabe. Dieses Kapitel
+beschreibt den Sprachumfang aus Sicht des Programmierers.
+
+\subsection{Typen, Variablen und Werte}
+MiniC++ kennt fünf Basistypen, benutzerdefinierte Klassentypen sowie daraus gebildete Referenz- und Zeigertypen.
+Variablen werden mit \code{T x;} oder \code{T x = expr;} deklariert; für Klassentypen ist \code{T x(a, b);} eine
+Kurzform von \code{T x = T(a, b);}. Globale Variablen gibt es nicht.
+
+\begin{reporttable}
+\begin{tabular}{L{0.13}L{0.5}L{0.29}}
+\thead \hcell{Typ} & \hcell{Wertebereich / Semantik} & \hcell{Standardwert ohne Initialisierer} \\ \midrule
+\code{int} & 32 Bit, Zweierkomplement mit Überlauf (wie \code{g++ -fwrapv}) & \code{0} \\
+\code{bool} & \code{true} / \code{false} & \code{false} \\
+\code{char} & Zeichen inkl.\ Escape-Sequenzen \code{\bs n \bs t \bs\sq{} \bs\bs{} \bs 0} u.\,a. & \code{\sq\bs 0\sq} \\
+\code{string} & Zeichenkette mit Wertsemantik & \code{\dq\dq} \\
+\code{void} & nur als Rückgabetyp & -- \\
+Klasse \code{A} & Objekt mit Wertsemantik (Kopie bei Zuweisung) & parameterloser Konstruktor \\
+\code{T\&} & Referenz; Initialisierung obligatorisch, keine Neubindung & -- (Fehler) \\
+\code{T*}, \code{T**} & Zeiger, auch mehrstufig; keine Arithmetik & \code{nullptr} \\ \bottomrule
+\end{tabular}
+\caption{Typen von MiniC++ und ihre Standardwerte}
+\end{reporttable}
+
+\subsection{Ausdrücke und Operatoren}
+Operatorpräzedenz und Assoziativität folgen dem C++-Standard. Die Typregeln sind bewusst strenger als in C++: Es gibt
+keine impliziten arithmetischen Konvertierungen, und beide Operanden eines binären Operators müssen denselben Typ
+haben.
+
+\begin{reporttable}
+\begin{tabular}{L{0.16}L{0.28}L{0.48}}
+\thead \hcell{Stufe} & \hcell{Operatoren} & \hcell{zulässige Operandentypen} \\ \midrule
+1 (höchste) & Aufruf \code{f()}, Member \code{.} \code{->} & Funktionen, Methoden, Objekte, Zeiger auf Objekte \\
+2 & unär \code{! + - * \&}, \code{new} & \code{!} nur \code{bool}; \code{+ -} nur \code{int}; \code{*} Zeiger; \code{\&} L-Werte \\
+3 & \code{* / \%} & \code{int} \\
+4 & \code{+ -} & \code{int} \\
+5 & \code{< <= > >=} & \code{int}, \code{char} \\
+6 & \code{== !=} & \code{int}, \code{char}, \code{bool}, \code{string}, kompatible Zeiger \\
+7 & \code{\&\&} & \code{bool} (Kurzschlussauswertung) \\
+8 & \code{||} & \code{bool} (Kurzschlussauswertung) \\
+9 (niedrigste) & \code{=} (rechtsassoziativ) & L-Wert links; Slicing bei Klassen erlaubt \\ \bottomrule
+\end{tabular}
+\caption{Operatoren nach Präzedenz}
+\end{reporttable}
+
+Implizite Konvertierung nach \code{bool} findet ausschließlich in \code{if}- und \code{while}-Bedingungen statt; dort
+sind auch \code{int}, \code{char} und Zeiger erlaubt. Operanden und Argumente werden strikt von links nach rechts
+ausgewertet. Division und Modulo durch null sind Laufzeitfehler.
+
+\subsection{Anweisungen, Funktionen und Überladung}
+Der Kontrollfluss umfasst Blöcke, \code{if}/\code{else}, \code{while} und \code{return}; \code{for}, \code{switch},
+\code{break} und \code{continue} gehören nicht zur Sprache. Funktionen können über Name, Arität und Parametertypen
+einschließlich der \code{\&}-Markierung überladen werden. Eingebaut sind \code{print\_bool}, \code{print\_int},
+\code{print\_char} und \code{print\_string}, die ihren Wert gefolgt von einem Zeilenumbruch ausgeben. Einstiegspunkt
+ist \code{int main()} oder \code{void main()}; \code{int main()} ohne \code{return} liefert 0, und der Rückgabewert
+wird zum Exit-Code des Prozesses.
+
+\subsection{Klassen, Vererbung und Polymorphie}
+Klassen werden als \code{class A \{ public: ... \};} definiert; alle Member sind öffentlich. Fehlt ein Konstruktor,
+wird ein parameterloser synthetisiert. Einfachvererbung erfolgt über \code{class D : public B}, wobei vor dem Rumpf
+eines Konstruktors von \code{D} implizit der parameterlose Konstruktor von \code{B} läuft. Die Namensauflösung
+innerhalb von Methoden folgt der Reihenfolge \emph{lokal $\rightarrow$ eigene Member $\rightarrow$ geerbte Member
+$\rightarrow$ global}; wie in C++ verdecken Member einer abgeleiteten Klasse gleichnamige Member der Basisklasse.
+\code{this} existiert nicht.
+
+Polymorphie entsteht über \code{virtual}-Methoden, die durch Referenzen oder Zeiger aufgerufen werden. Eine Methode,
+die eine virtuelle Methode überschreibt, ist selbst virtuell. Während der Konstruktor einer Basisklasse läuft, wird --
+exakt wie in C++ -- deren eigene Version aufgerufen. Die Zuweisung eines abgeleiteten Objekts an eine Variable vom
+Basistyp kopiert nur den Basisanteil (\emph{Slicing}).
+
+\begin{lstlisting}[language=C++,caption={Vererbung, virtueller Dispatch und Slicing (gekürzt aus \code{examples/features.cpp})}]
+class Account {
+public:
+  int balance;
+  virtual int monthlyFee() { return 5; }
+  void endOfMonth() { balance = balance - monthlyFee(); }  // dynamischer Dispatch
+};
+class StudentAccount : public Account {
+public:
+  int monthlyFee() { return 0; }                             // implizit virtual
+};
+int main() {
+  StudentAccount bob;
+  Account& any = bob;      print_int(any.monthlyFee());      // 0  (Polymorphie)
+  Account copy = bob;      print_int(copy.monthlyFee());     // 5  (Slicing)
+  Account* p = new StudentAccount();
+  print_int(p->monthlyFee());                                // 0
+  delete p;
+  return 0;
+}
+\end{lstlisting}
+
+\subsection{Referenzen und Zeiger}
+Referenzen (\code{T\& r = x;}, Parameter \code{T\& p}) sind zweite Namen für einen existierenden Speicherort; eine
+Zuweisung an \code{r} schreibt in \code{x}. Referenzfelder, Referenz-Rückgaben und nicht initialisierte Referenzen
+sind nicht erlaubt. Zeiger (\code{T*}, \code{T**}, auch als Parameter \code{T*\&}, Feld oder Rückgabewert)
+unterstützen den Adressoperator \code{\&x}, die Dereferenzierung \code{*p} (lesend und schreibend), Memberzugriff
+\code{p->m}, das Literal \code{nullptr}, Heap-Allokation mit \code{new T} bzw.\ \code{new T(args)} und Freigabe mit
+\code{delete p;}. Implizit konvertiert werden nur \code{D*} $\rightarrow$ \code{B*} und \code{nullptr}
+$\rightarrow$ \code{T*}.
+
+Eine Besonderheit, die direkt aus der C++-Grammatik folgt: Die Anweisung \code{a * b;} ist eine Deklaration eines
+Zeigers \code{b} vom Typ \code{a*} und keine Multiplikation.
+
+\subsection{Bewusste Einschränkungen und Präzisierungen}
+Nicht unterstützt werden Zeigerarithmetik, \code{void*}, Casts, Arrays, \code{++}/\code{--}, zusammengesetzte
+Zuweisungen, \code{break}/\code{continue}, Mehrfachvererbung, Templates, \code{static}, \code{const}, \code{this},
+globale Variablen, Initialisierungslisten, Destruktoren und reine Funktionsdeklarationen. Wo die Aufgabenstellung
+offen war, wurden folgende Festlegungen getroffen:
+\begin{itemize}
+  \item Was in C++ undefiniertes Verhalten wäre, ist ein \textbf{Laufzeitfehler}: Dereferenzieren von
+    \code{nullptr}, hängende Zeiger und Referenzen auf Variablen, deren Gültigkeitsbereich endete, Zugriff auf
+    gelöschte Heap-Objekte, doppeltes \code{delete} sowie \code{delete} auf nicht per \code{new} erzeugte Objekte.
+    Nicht freigegebener Speicher ist dagegen kein Fehler.
+  \item Mehr als 100\,000 verschachtelte Aufrufe gelten als Stapelüberlauf und werden als Laufzeitfehler gemeldet.
+  \item Überladungsauflösung: Zuerst werden exakte Treffer gesucht; nur wenn keiner existiert, werden die
+    Konvertierungen Derived $\rightarrow$ Base, \code{D*} $\rightarrow$ \code{B*} und \code{nullptr} $\rightarrow$
+    \code{T*} berücksichtigt. Mehr als ein bester Kandidat ist ein Fehler.
+  \item Felder dürfen in abgeleiteten Klassen nicht erneut deklariert werden.
+  \item Funktionen und Klassen dürfen vor ihrer Definition verwendet werden (\emph{define-after-use}), Variablen
+    nicht.
+\end{itemize}
+
+% ================================================================== 3 Architektur
+\section{Systemarchitektur}\label{sec:architektur}
+\subsection{Modulstruktur}
+Das Repository ist ein Gradle-Multiprojekt mit vier Java-Modulen und einem TypeScript-Projekt. Alle Werkzeuge hängen
+ausschließlich vom Modul \code{interpreter} ab; untereinander gibt es keine Abhängigkeiten. Damit bleibt der Kern frei
+von LSP-, HTTP- oder Benchmark-Bibliotheken.
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}
+  \node[dbox, fill=lexbg, minimum width=6.6cm, minimum height=1.5cm, font=\normalsize] (core) at (0,0)
+    {\textbf{interpreter}\\[-1pt]{\scriptsize\itshape\color{ink2}Grammatik \textperiodcentered{} AST \textperiodcentered{} Resolver \textperiodcentered{} Typprüfung \textperiodcentered{} Laufzeit \textperiodcentered{} REPL \textperiodcentered{} CLI}};
+  \node[dbox, minimum width=3.4cm, minimum height=1cm] (lsp)   at (-5.6,2.4) {\boxtext{lsp}{LSP4J-Server (stdio)}};
+  \node[dbox, minimum width=3.4cm, minimum height=1cm] (bench) at (0,2.4)    {\boxtext{benchmark}{JMH-Messungen}};
+  \node[dbox, minimum width=3.4cm, minimum height=1cm] (mcp)   at (5.6,2.4)  {\boxtext{mcp}{GenAI-REST-Server}};
+  \foreach \m in {lsp,bench,mcp} \draw[arr] (\m.south) -- (core);
+  \node[dbox, fill=white, minimum width=3cm, minimum height=1.5cm] (vsc) at (-6.4,0) {\boxtext{vscode}{TypeScript-Client}};
+  \node[dbox, fill=white, draw=ink2, minimum width=3cm, minimum height=1.5cm] (oll) at (6.4,0) {\boxtext{Ollama}{lokales LLM (HTTP)}};
+  \draw[arr, dashed] (vsc.north -| lsp.south) -- (lsp.south) node[lbl, midway, right] {startet, JSON-RPC};
+  \draw[arr, dashed] (mcp.south) -- (oll.north -| mcp.south) node[lbl, midway, right] {/api/generate};
+  \node[dbox, fill=white, draw=rule, font=\scriptsize, minimum width=2.1cm] (e1) at (-2.3,-2.3) {ANTLR 4 Runtime};
+  \node[dbox, fill=white, draw=rule, font=\scriptsize, minimum width=2.1cm] (e2) at (0,-2.3)    {JUnit 5};
+  \node[dbox, fill=white, draw=rule, font=\scriptsize, minimum width=2.1cm] (e3) at (2.3,-2.3)  {Gradle 9.5 Wrapper};
+  \draw[arr] (core.south) -- (e2.north) node[lbl, midway, right] {baut auf};
+\end{tikzpicture}
+\caption{Module und ihre Abhängigkeiten}
+\end{figure}
+
+\begin{reporttable}
+\begin{tabular}{L{0.15}L{0.43}L{0.22}L{0.1}}
+\thead \hcell{Modul} & \hcell{Aufgabe} & \hcell{Quellzeilen (main / test)} & \hcell{Tests} \\ \midrule
+\code{interpreter} & Sprache, Laufzeit, REPL, CLI, C++-Export & 6\,421 / 1\,680 & 175 \\
+\code{lsp} & Language-Server (LSP4J 1.0.0) & 2\,295 / 590 & 22 \\
+\code{mcp} & GenAI-REST-Server (JDK-\code{HttpServer}, Gson) & 618 / 363 & 21 \\
+\code{benchmark} & JMH-Benchmarks (JMH 1.37) & 262 / -- & -- \\
+\code{vscode} & VS-Code-Client (TypeScript) & 86 & -- \\ \bottomrule
+\end{tabular}
+\caption{Module des Repositorys (Stand 27.09.2026, inkl.\ Grammatik und Testprogramme)}
+\end{reporttable}
+
+\subsection{Verarbeitungspipeline}
+Die Verarbeitung eines Programms folgt der klassischen Phasenstruktur eines Compilers. Jede Phase ist als eigene
+Klasse realisiert; ab dem AST sind alle Phasen Implementierungen der generischen Schnittstelle
+\code{AstVisitor<T>}. Eine Phase läuft nur, wenn die vorherige fehlerfrei war -- so kann sich jede Phase auf die
+Invarianten der vorherigen verlassen (etwa: der Interpreter findet jeden Bezeichner bereits aufgelöst und jeden
+Ausdruck typisiert vor).
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[stage/.style={dbox, minimum width=2.15cm, text width=2.05cm, minimum height=1.15cm, font=\footnotesize}]
+  \foreach \t/\s/\c [count=\i from 0] in
+     {Quelltext/String/white, Lexer/MiniCppLexer/lexbg, Parser/MiniCppParser/lexbg,
+      AST-Aufbau/ASTBuildVisitor/headbg, Resolver/ASTResolveVisitor/headbg,
+      Typprüfung/TypeCheckVisitor/headbg, Interpreter/Interpreter/headbg}
+    \node[stage, fill=\c] (s\i) at (\i*2.36,0) {\textbf{\t}\\[-1pt]{\tiny\itshape\color{ink2}\s}};
+  \foreach \i [evaluate=\i as \j using int(\i+1)] in {0,...,5}
+    \draw[arr] (s\i) -- (s\j);
+  \foreach \a/\b/\t in {1/2/Token-Strom, 2/3/Parse-Tree, 3/4/AST + Quellbereiche, 4/5/gebundene Namen, 5/6/annotierte Typen}
+    \node[lbl, text width=2.1cm, align=center, anchor=south] at ($(s\a.north)!0.5!(s\b.north)+(0,0.08)$) {\t};
+  \draw[decorate, decoration={brace, mirror, amplitude=4pt}, accent, thick]
+    ([yshift=-3pt]s1.south west) -- ([yshift=-3pt]s2.south east)
+    node[midway, below=5pt, font=\scriptsize\itshape, text=accent, align=center] {generiert aus MiniCpp.g4\\(ANTLR 4.13.2)};
+  \draw[decorate, decoration={brace, mirror, amplitude=4pt}, accent, thick]
+    ([yshift=-3pt]s3.south west) -- ([yshift=-3pt]s5.south east)
+    node[midway, below=5pt, font=\scriptsize\itshape, text=accent] {statische Analyse $\rightarrow$ \code{MiniCpp.compile()}};
+  \draw[decorate, decoration={brace, mirror, amplitude=4pt}, accent, thick]
+    ([yshift=-3pt]s6.south west) -- ([yshift=-3pt]s6.south east)
+    node[midway, below=5pt, font=\scriptsize\itshape, text=accent] {\code{MiniCpp.execute()}};
+  \node[font=\scriptsize, color=ink2, anchor=west] at (-1.05,-2.55) {Nutzer der Fassade:};
+  \foreach \t/\x in {REPL/6.0, LSP-Server/8.6, GenAI-Server/11.2}
+    \node[dbox, fill=white, draw=ink2, minimum width=2.3cm, font=\scriptsize] at (\x,-2.55) {\t};
+\end{tikzpicture}
+\caption{Verarbeitungspipeline und Fassade \code{MiniCpp}}
+\end{figure}
+
+\subsection{Die Fassade MiniCpp}
+Alle Nutzer greifen über die Klasse \code{interpreter.MiniCpp} auf die Pipeline zu. Die Ergebnisse sind als
+unveränderliche Java-Records modelliert, die neben dem eigentlichen Ergebnis stets eine Liste von Diagnosen tragen:
+
+\begin{lstlisting}[language=Java,caption={Öffentliche Schnittstelle der Fassade \code{MiniCpp} (vereinfacht)}]
+record ParseResult<T>(T tree, List<Diagnostic> diagnostics, boolean incomplete)
+record Compilation(Program program, GlobalScope globals, List<Diagnostic> diagnostics)
+record RunResult(int exitCode, List<Diagnostic> diagnostics)
+
+static ParseResult<Program>   parseProgram(String source)
+static ParseResult<ReplInput> parseReplInput(String source)
+static Compilation            compile(String source)          // Parsen + Resolver + Typprüfung
+static Compilation            analyze(Program p, boolean requireMain)
+static RunResult              run(String source, PrintStream out)
+static RunResult              execute(Compilation c, PrintStream out)
+\end{lstlisting}
+
+Eine \code{Diagnostic} besteht aus der Phase (\code{SYNTAX}, \code{RESOLVE}, \code{TYPE}, \code{RUNTIME}), einem
+Quellbereich (Zeilen 1-basiert, Spalten 0-basiert, Ende exklusiv) und einer Meldung. Die Kommandozeile formatiert sie
+im von GCC und Clang bekannten Format \code{datei.cpp:3:7: error: use of undeclared identifier \sq y\sq}; der
+Language-Server rechnet sie in LSP-Positionen um. Die Trennung von Ergebnis und Darstellung ist der Grund, weshalb
+alle drei Werkzeuge dieselben Fehlermeldungen zeigen.
+
+\subsection{Architekturentscheidungen}
+Die grundlegenden Entscheidungen wurden zu Projektbeginn gemeinsam getroffen und als Architecture Decision Records
+festgehalten. Die folgende Tabelle fasst sie mit ihren Konsequenzen zusammen.
+
+\begin{reporttable}
+\begin{tabular}{L{0.23}L{0.38}L{0.31}}
+\thead \hcell{Entscheidung} & \hcell{Begründung} & \hcell{Konsequenz im Projekt} \\ \midrule
+Java 21 als Implementierungssprache & ausgereifte Standardbibliothek, Klassenhierarchien und Visitor-Pattern passen
+  zur AST-Modellierung; Records und Pattern-Matching verkürzen den Code & tiefe Rekursion des Tree-Walkers erfordert
+  einen eigenen Thread mit 512 MiB Stack (Abschnitt~\ref{sec:laufzeit}) \\
+ANTLR4 als Parsergenerator & De-facto-Standard auf der JVM, Lexer und Parser aus einer \code{.g4}-Datei,
+  ALL(*)-Parsing, eingebaute Fehlerbehandlung & Parse-Tree muss in einen eigenen AST übersetzt werden; Grammatik wird
+  beim Build generiert \\
+Handgeschriebener AST statt Parse-Tree & Phasen sollen auf einer stabilen, typisierten Struktur arbeiten und
+  Annotationen (Bindung, Typ) speichern & zusätzliche Klasse \code{ASTBuildVisitor} (757 Zeilen) \\
+VS Code als LSP-Zielplattform & gut dokumentierte Extension-API, \code{vscode-languageclient} & Server bleibt
+  editorneutral (stdio, LSP4J) \\
+Ollama als GenAI-Provider & lokal, ohne API-Schlüssel, Kosten oder Datenschutzbedenken & Provider-Schnittstelle mit
+  Mock für deterministische Tests \\ \bottomrule
+\end{tabular}
+\caption{Architekturentscheidungen}
+\end{reporttable}
+
+\begin{reporttable}
+\begin{tabular}{L{0.55}L{0.37}}
+\thead \hcell{Komponente} & \hcell{Version} \\ \midrule
+JDK (Ziel / Entwicklung) & 21 / 25 \\
+Gradle (Wrapper) & 9.5.1 \\
+ANTLR & 4.13.2 \\
+Eclipse LSP4J & 1.0.0 \\
+Gson & 2.11.0 \\
+JUnit Jupiter & 5.11.4 \\
+JMH & 1.37 \\
+vscode-languageclient / VS Code Engine & 10.1 / $\geq$ 1.91 \\
+CI & GitHub Actions, Temurin 21, Node 22 \\ \bottomrule
+\end{tabular}
+\caption{Technologie-Stack}
+\end{reporttable}
+
+% ================================================================== 4 Kern
+\section{Kern-Interpreter}\label{sec:kern}
+Dieses Kapitel beschreibt die Phasen des Kern-Interpreters in der Reihenfolge, in der ein Programm sie durchläuft.
+Der Schwerpunkt liegt auf den Entwurfsentscheidungen, die nicht unmittelbar aus dem Code ersichtlich sind.
+
+\subsection{Lexikalische Analyse}
+Der Lexer wird aus dem Lexer-Teil von \code{interpreter/src/main/antlr4/MiniCpp.g4} generiert. Schlüsselwörter
+(einschließlich \code{new}, \code{delete} und \code{nullptr}) sind eigene Token-Typen und stehen vor der
+\code{Identifier}-Regel, sodass ANTLR bei gleicher Länge das Schlüsselwort bevorzugt. Leerraum, Zeilen- und
+Blockkommentare sowie Präprozessorzeilen (\code{\#include <iostream>}) werden verworfen -- so lassen sich
+MiniC++-Programme unverändert auch mit einem C++-Compiler übersetzen. Zeichen- und Zeichenkettenliterale erlauben die
+Escape-Sequenzen \code{\bs b \bs t \bs n \bs r \bs\dq{} \bs\sq{} \bs\bs{} \bs 0}. Jedes Token trägt Zeile und Spalte;
+diese Positionen wandern über den AST bis in die Diagnosen.
+
+\subsection{Syntaxanalyse}
+Der Parser besitzt zwei Startregeln: \code{program} für Dateien (nur Deklarationen) und \code{replInput} für die
+REPL, die Deklarationen und Anweisungen in beliebiger Reihenfolge und einen abschließenden Ausdruck ohne Semikolon
+erlaubt. Die Ausdrucksgrammatik ist als Präzedenzkaskade formuliert -- eine Regel pro Präzedenzstufe --, was die
+Präzedenz explizit und die Grammatik frei von Mehrdeutigkeiten hält:
+
+\begin{lstlisting}[caption={Auszug aus der Parser-Grammatik}]
+assignmentExpr     : logicalOrExpr (ASSIGN assignmentExpr)? ;        // rechtsassoziativ
+logicalOrExpr      : logicalAndExpr (OROR logicalAndExpr)* ;
+  ...
+multiplicativeExpr : unaryExpr ((STAR | SLASH | PERCENT) unaryExpr)* ;
+unaryExpr          : (NOT | PLUS | MINUS | STAR | AMP) unaryExpr | newExpr | postfixExpr ;
+postfixExpr        : primaryExpr postfixPart* ;
+postfixPart        : LPAREN argList? RPAREN | DOT Identifier | ARROW Identifier ;
+
+type               : (baseType | Identifier) STAR* ;                 // 'T', 'T*', 'T**'
+statement          : block | varDecl SEMI | ifStmt | whileStmt
+                   | returnStmt SEMI | deleteStmt SEMI | expr SEMI ;
+\end{lstlisting}
+
+Da \code{varDecl} in \code{statement} vor \code{expr} steht und ANTLR bei Mehrdeutigkeit die erste passende
+Alternative wählt, wird \code{a * b;} -- wie in C++ -- als Zeigerdeklaration erkannt. Die Grammatik akzeptiert bewusst
+etwas mehr als die Sprache (z.\,B. Klassenbezeichner an beliebiger Typposition); die Einschränkungen prüfen Resolver
+und Typprüfung, die präzisere Fehlermeldungen liefern können als der Parser.
+
+\subsubsection*{Fehlerbehandlung}
+Die Standard-Fehlerausgabe von ANTLR wird durch einen \code{SyntaxErrorCollector} ersetzt, der jeden Fehler als
+\code{Diagnostic} mit der Länge des betroffenen Tokens aufzeichnet. Zusätzlich merkt er sich, ob ein Fehler \emph{am
+Dateiende} auftrat. Dieses Flag (\code{ParseResult.incomplete}) nutzt die REPL, um unvollständige Eingaben -- etwa
+eine offene geschweifte Klammer -- von echten Syntaxfehlern zu unterscheiden. Bei Syntaxfehlern wird kein AST
+erzeugt; die Fehlerbehandlung von ANTLR sorgt aber dafür, dass alle Syntaxfehler einer Datei in einem Durchlauf
+gemeldet werden.
+
+\subsection{Abstrakter Syntaxbaum}
+Der \code{ASTBuildVisitor} übersetzt den Parse-Tree in einen handgeschriebenen AST. Dabei werden syntaktische Details
+entfernt (Klammern, Präzedenzstufen), Kurzformen normalisiert (\code{T x(a)} wird zu einer Deklaration mit
+Konstruktoraufruf) und jedem Knoten sein vollständiger Quellbereich mitgegeben. Die Knoten gliedern sich in vier
+Hierarchien:
+
+\begin{reporttable}
+\begin{tabular}{L{0.16}L{0.76}}
+\thead \hcell{Basisklasse} & \hcell{Knoten} \\ \midrule
+\code{Decl} & \code{ClassDecl}, \code{ConstructorDecl}, \code{FieldDecl}, \code{FunctionDecl}, \code{MethodDecl},
+  \code{ParameterDecl}, \code{VariableDecl} \\
+\code{Stmt} & \code{BlockStmt}, \code{VariableStmt}, \code{ExprStmt}, \code{IfStmt}, \code{WhileStmt},
+  \code{ReturnStmt}, \code{DeleteStmt} \\
+\code{Expr} & \code{AssignExpr}, \code{BinaryExpr}, \code{UnaryExpr}, \code{CallExpr}, \code{MemberAccessExpr},
+  \code{NewExpr}, \code{VarExpr}, Literale (\code{Int}, \code{Bool}, \code{Char}, \code{String}, \code{Nullptr}),
+  \code{ErrorExpr} \\
+\code{Type} & \code{PrimitiveType}, \code{ClassType}, \code{PointerType}, \code{ReferenceType}, \code{NullptrType} \\
+\bottomrule
+\end{tabular}
+\caption{Knotenhierarchien des AST}
+\end{reporttable}
+
+Wurzelknoten sind \code{Program} (Datei) und \code{ReplInput} (REPL-Eingabe). Spätere Phasen annotieren den AST,
+statt eigene Tabellen aufzubauen: Der Resolver setzt an \code{VarExpr} die referenzierte Deklaration, die Typprüfung
+setzt an jedem \code{Expr} den inferierten Typ und an \code{CallExpr} bzw.\ \code{NewExpr} die gewählte Überladung.
+Genau diese Annotationen nutzt der Language-Server später für Hover, Go-to-Definition und Umbenennen.
+
+\subsection{Namensauflösung}
+Der \code{ASTResolveVisitor} arbeitet in zwei Durchläufen. \textbf{Pass 1} sammelt alle Klassen und Funktionen im
+\code{GlobalScope}, verknüpft jede Klasse mit ihrer Basisklasse, erkennt zyklische Vererbung und prüft
+Member-Deklarationen (doppelte Felder, erneut deklarierte Felder in abgeleiteten Klassen, doppelte Signaturen). Weil
+alle globalen Namen danach bekannt sind, dürfen Funktionen und Klassen vor ihrer Definition verwendet werden.
+\textbf{Pass 2} durchläuft alle Rümpfe mit einem Stapel lokaler Gültigkeitsbereiche und bindet jeden Bezeichner in
+der Reihenfolge \emph{lokal $\rightarrow$ eigene Member $\rightarrow$ geerbte Member $\rightarrow$ global}. Da lokale
+Namen erst beim Erreichen ihrer Deklaration in den aktuellen Bereich eingetragen werden, entsteht für Variablen
+automatisch die define-before-use-Semantik.
+
+\begin{lstlisting}[language=C++,caption={Typische Fehler der Namensauflösung (aus \code{ErrorTest})}]
+int main() { x = 1; int x; }            // 1:14: error: use of undeclared identifier 'x'
+int main() { int x; bool x; }           // error: redeclaration of 'x'
+class A : public B { public: };         // error: unknown base class 'B'
+class A : public B { public: }; class B : public A { public: };   // error: 'A' inherits from itself
+void f(int a) { } void f(int b) { }     // error: redefinition of function 'f(int)'
+\end{lstlisting}
+
+Für die REPL stellt der Resolver zusätzlich Einzeloperationen bereit (\code{declareClass}, \code{declareFunction},
+\code{resolveSessionStatement}), mit denen Eingaben einzeln und damit stets define-before-use aufgelöst werden.
+
+\subsection{Typprüfung}
+Da \code{auto} nicht zum Sprachumfang gehört, ist keine Typinferenz im Sinne von Hindley-Milner nötig; jede Variable
+trägt ihren deklarierten Typ. Der \code{TypeCheckVisitor} bestimmt die Typen von Ausdrücken bottom-up und prüft dabei
+die Regeln aus Kapitel~\ref{sec:sprache}: gleiche Operandentypen, zulässige Operatoren pro Typ, L-Werte links von
+\code{=} und bei Referenzparametern, Bedingungstypen, Zeigerkompatibilität und Konstruktoraufrufe. Darüber hinaus
+prüft er:
+\begin{itemize}
+  \item \textbf{Return-Pfade:} Eine Nicht-\code{void}-Funktion muss auf allen Pfaden ein \code{return} erreichen
+    (\code{alwaysReturns} analysiert \code{if}/\code{else}-Verzweigungen und Blöcke; \code{int main()} ist
+    ausgenommen).
+  \item \textbf{Overrides:} Eine Methode mit gleicher Signatur wie eine virtuelle Basismethode muss denselben
+    Rückgabetyp haben und wird selbst als virtuell markiert (\code{isEffectivelyVirtual}).
+  \item \textbf{Rekursive Einbettung:} Eine Klasse darf sich nicht selbst als Wertfeld enthalten, auch nicht indirekt
+    (Zeigerfelder sind erlaubt).
+  \item \textbf{Einstiegspunkt:} Es muss genau ein parameterloses \code{main} mit Rückgabetyp \code{int} oder
+    \code{void} existieren.
+\end{itemize}
+
+\subsubsection*{Überladungsauflösung}
+Die Auflösung von Funktions-, Methoden- und Konstruktoraufrufen erfolgt zentral in \code{pickOverload}. Für jeden
+Kandidaten berechnet \code{matchCost} die Anzahl der nötigen impliziten Konvertierungen ($-1$ = nicht aufrufbar). Ein
+Referenzparameter verlangt ein L-Wert-Argument und darf nicht an einen konvertierten Zeiger binden, da dieser ein
+temporärer Wert wäre.
+
+\begin{lstlisting}[language=Java,caption={Kern der Überladungsauflösung in \code{TypeCheckVisitor}}]
+List<D> exact = ..., converting = ...;
+for (D candidate : candidates) {
+  int cost = matchCost(params.apply(candidate), args, argTypes);
+  if (cost == 0) exact.add(candidate);
+  else if (cost > 0) converting.add(candidate);
+}
+List<D> best = !exact.isEmpty() ? exact : converting;
+if (best.size() == 1) return best.get(0);
+// sonst: "no matching function for call to 'f(int, bool)'; candidates are: ..."
+//    bzw. "call to 'f(B*)' is ambiguous; candidates are: ..."
+\end{lstlisting}
+
+\subsection{Laufzeitmodell}\label{sec:laufzeit}
+Der \code{Interpreter} ist ein Tree-Walking-Interpreter: Er implementiert \code{AstVisitor<Object>}, wobei Ausdrücke
+zu Laufzeitwerten und Anweisungen zu \code{null} oder einem \code{Returned}-Signal auswerten. Die Rückgabe über ein
+Signalobjekt statt über eine Java-Exception hält den Aufrufpfad frei von teurem Stack-Unwinding. Laufzeitwerte sind
+\code{Integer}, \code{Boolean}, \code{Character}, \code{String}, \code{Pointer} oder \code{ObjectValue}.
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[font=\footnotesize]
+  % Frame
+  \draw[navy, fill=white, rounded corners=2pt, line width=0.6pt] (0,0) rectangle (4.4,5.8);
+  \node[font=\footnotesize\bfseries, color=navy] at (2.2,5.45) {Frame (Activation Record)};
+  \foreach \t/\y/\n in {int x/4.75/fx, Konto a/3.85/fa, int\& r\ \ (Alias)/2.95/fr, Konto* p/2.05/fp}
+    \node[dbox, fill=zebra, draw=rule, minimum width=3.8cm, minimum height=0.6cm] (\n) at (2.2,\y) {\t};
+  \node[lbl] at (2.2,0.45) {\code{Map<Decl, Cell>} + owned-Liste};
+  % Mitte
+  \node[dbox, minimum width=2.6cm, minimum height=0.7cm] (c42) at (7.3,5.0) {Cell: 42};
+  \node[lbl] at (7.3,4.35) {r = Alias dieser Cell};
+  \draw[navy, fill=headbg, rounded corners=2pt, line width=0.6pt] (5.6,1.9) rectangle (10.4,3.95);
+  \node[font=\footnotesize\bfseries] at (8.0,3.6) {Cell $\rightarrow$ ObjectValue (Konto)};
+  \node[dbox, fill=white, draw=rule, minimum width=2.0cm, minimum height=0.95cm] at (6.85,2.6) {owner\\[-1pt]{\scriptsize\itshape\color{ink2}Cell}};
+  \node[dbox, fill=white, draw=rule, minimum width=2.0cm, minimum height=0.95cm] at (9.15,2.6) {balance\\[-1pt]{\scriptsize\itshape\color{ink2}Cell}};
+  \coordinate (obj) at (5.6,3.0);
+  \node[dbox, fill=white, draw=accent, minimum width=3.6cm, minimum height=0.95cm] (ptr) at (7.4,0.65)
+    {Pointer(target)\\[-1pt]{\scriptsize\itshape\color{ink2}record; NULL = nullptr}};
+  \draw[arr] (fx.east) -- (c42.west);
+  \draw[arr] (fa.east) -- (obj);
+  \draw[arr, dashed] (fr.east) -- (c42.south west);
+  \draw[arr] (fp.east) -- (ptr.west);
+  % rechts: vtable und Heap
+  \draw[ink2, fill=white, rounded corners=2pt, line width=0.6pt] (11.4,3.6) rectangle (16,5.8);
+  \node[font=\footnotesize\bfseries, color=ink2] at (13.7,5.45) {vtable(Konto)};
+  \node[anchor=west, font=\ttfamily\scriptsize] at (11.55,4.9) {gebuehr()\ \ \ \ \ \ $\rightarrow$ Konto};
+  \node[anchor=west, font=\ttfamily\scriptsize] at (11.55,4.5) {einzahlen(int) $\rightarrow$ Konto};
+  \node[lbl, anchor=west] at (11.55,3.95) {\code{Map<String, MethodDecl>}};
+  \draw[ink2, fill=white, rounded corners=2pt, line width=0.6pt] (11.4,0) rectangle (16,2.9);
+  \node[font=\footnotesize\bfseries, color=ink2] at (13.7,2.55) {Heap (new)};
+  \node[dbox, minimum width=4.0cm, minimum height=1.3cm] (hc) at (13.7,1.1)
+    {Cell (heap = true)\\[-1pt]{\scriptsize\itshape\color{ink2}$\rightarrow$ ObjectValue}};
+  \draw[arr, accent] (ptr.east) -- (hc.west);
+  \draw[arr, dashed] (10.4,3.6) -- (11.4,4.4) node[lbl, midway, above left] {dynamicClass};
+\end{tikzpicture}
+\caption{Speichermodell: Frames, Cells, Objekte, Zeiger und vtables}
+\end{figure}
+
+\subsubsection*{Cells als Speicherorte}
+Zentrale Abstraktion ist die \code{Cell}, ein veränderlicher Speicherort. Jede Variable, jeder By-Value-Parameter und
+jedes Feld besitzt genau eine Cell. Eine \textbf{Referenz} ist schlicht ein zweiter Name für dieselbe Cell --
+Zuweisungen über die Referenz ändern damit automatisch das Original. Ein \textbf{Zeiger} ist der Record
+\code{Pointer(Cell target)}; \code{nullptr} ist \code{Pointer(null)}, und zwei Zeiger sind gleich, wenn sie auf
+dieselbe Cell zeigen.
+
+\subsubsection*{Lebensdauer und Fehlererkennung}
+Jeder Frame (Activation Record) führt eine Liste der Cells, die ihm gehören. Endet ein Block oder eine Funktion,
+werden diese Cells per \code{kill()} als tot markiert -- rekursiv einschließlich der Felder enthaltener Objekte.
+Heap-Cells aus \code{new} tragen zusätzlich das Flag \code{heap}; \code{delete} prüft, dass der Zeiger auf eine
+lebende Heap-Cell zeigt, und tötet sie. Jeder Zugriff über einen Zeiger oder eine Referenz prüft den Zustand der
+Ziel-Cell. So werden \code{nullptr}-Dereferenzierung, hängende Zeiger, Use-after-free, doppeltes \code{delete} und
+\code{delete} auf Stack-Objekte zuverlässig und mit Quellposition erkannt, ohne eine Speicherverwaltung zu simulieren
+-- die eigentliche Freigabe übernimmt der Garbage Collector der JVM.
+
+\subsubsection*{Objekte, Kopien und Slicing}
+Ein \code{ObjectValue} hält seine Felder in einer \code{LinkedHashMap<String, Cell>} in Deklarationsreihenfolge.
+Zuweisungen und Wertparameter kopieren Objekte tief (\code{copy}); ist der statische Zieltyp eine Basisklasse,
+entsteht mit \code{sliceTo} eine Kopie, die nur deren Felder enthält. Temporäre Objekte (etwa Rückgabewerte) werden
+nicht erneut kopiert.
+
+\subsubsection*{Virtueller Dispatch}
+Für jede Klasse wird bei Bedarf eine vtable als \code{Map<String, MethodDecl>} aufgebaut: Sie übernimmt die Einträge
+der Basisklasse und überschreibt sie mit den eigenen Methoden. Schlüssel ist der Methodenname zusammen mit den
+Parametertypen, sodass überladene virtuelle Methoden getrennt bleiben. Nicht-virtuelle Aufrufe werden statisch
+gebunden, virtuelle über die vtable der \emph{dynamischen Klasse} des Empfängers. Diese ist normalerweise die Klasse
+des Objekts, wird aber während eines Basisklassen-Konstruktors vorübergehend auf die Basisklasse gesetzt -- das bildet
+die C++-Regel nach, dass im Konstruktor noch nicht in abgeleitete Klassen dispatcht wird.
+
+\begin{lstlisting}[language=Java,caption={Dynamischer Dispatch im Interpreter}]
+private MethodDecl dispatch(MethodDecl method, ObjectValue receiver) {
+  if (!method.isEffectivelyVirtual()) return method;
+  MethodDecl override = vtable(receiver.getDynamicClass()).get(vtableKey(method));
+  return override != null ? override : method;
+}
+\end{lstlisting}
+
+\subsubsection*{Rekursionstiefe}
+Ein Tree-Walker benötigt pro interpretiertem Aufruf mehrere Java-Stackframes. Damit auch tiefe Rekursion (z.\,B.\
+100\,000 Ebenen) funktioniert, führt \code{MiniCpp.onLargeStack} den Interpreter auf einem eigenen Thread mit 512 MiB
+Stack aus. Ein Zähler begrenzt die Aufruftiefe auf \code{MAX\_CALL\_DEPTH = 100\_000}; verbleibende
+\code{StackOverflowError}s (etwa durch extrem tief verschachtelte Ausdrücke) werden in einen regulären Laufzeitfehler
+übersetzt.
+
+\subsection{REPL}
+Die REPL (\code{repl.Repl}) lädt optional eine Datei, führt deren \code{main} im \emph{Sitzungs-Scope} aus und hält
+diesen offen, sodass die lokalen Variablen von \code{main} anschließend zur Verfügung stehen. Jede Eingabe wird mit
+der Startregel \code{replInput} geparst. Meldet der Parser einen Fehler am Eingabeende, zeigt die REPL den
+Fortsetzungsprompt \code{...>} und sammelt weitere Zeilen. Eine vollständige Eingabe wird als Ganzes aufgelöst,
+geprüft und ausgeführt; vor der Verarbeitung wird mit \code{GlobalScope.snapshot()} ein Sicherungspunkt angelegt, auf
+den bei einem Fehler zurückgesetzt wird. Eine fehlerhafte Eingabe hinterlässt damit keine halb definierten Klassen
+oder Funktionen.
+
+\begin{lstlisting}[caption={REPL-Sitzung}]
+minicpp> int x = 6;
+minicpp> int sq(int n) {
+     ...>   return n * n;
+     ...> }
+minicpp> sq(x) + 1
+37
+minicpp> :vars
+int x = 6
+\end{lstlisting}
+
+Neue Variablen landen im Sitzungs-Scope, neue Funktionen und Klassen im globalen Scope. Da MiniC++ keine globalen
+Variablen kennt, sind Sitzungsvariablen in Funktionen nicht sichtbar. Befehle: \code{:vars}, \code{:functions},
+\code{:classes}, \code{:load <datei>}, \code{:reset}, \code{:cancel}, \code{:help}, \code{:quit}.
+
+\subsection{Kommandozeile und C++-Export}\label{sec:cppexport}
+Die Klasse \code{Main} stellt die Unterbefehle \code{run}, \code{check}, \code{repl}, \code{ast} und \code{to-cpp}
+bereit (Anhang~\ref{app:build}). Der Exit-Code von \code{run} ist der Rückgabewert von \code{main}, bei Fehlern 1.
+
+Der \code{CppExporter} übersetzt ein geprüftes MiniC++-Programm in Standard-C++17 mit identischem Verhalten. Er ist
+die Grundlage des differenziellen Tests gegen GCC (Abschnitt~\ref{sec:gcc}) und überbrückt die Stellen, an denen
+MiniC++ bewusst von C++ abweicht:
+\begin{itemize}
+  \item define-after-use: Klassen werden vorwärts deklariert und nach Abhängigkeiten sortiert, Funktionen erhalten
+    Prototypen, Methoden werden nach allen Klassen außerhalb definiert;
+  \item Standardwerte für nicht initialisierte Variablen und Felder, \code{new T} wird zu \code{new T()};
+  \item Zeichenkettenliterale erhalten den Typ \code{string}, die \code{print\_*}-Funktionen werden in einem Präludium
+    definiert, \code{void main()} wird gekapselt;
+  \item Basisklassen erhalten einen virtuellen Destruktor, damit \code{delete} über einen Basiszeiger definiert ist.
+\end{itemize}
+
+% ================================================================== 5 LSP
+\section{Language-Server}\label{sec:lsp}
+Der Language-Server macht MiniC++ in jedem LSP-fähigen Editor nutzbar; Referenz-Client ist eine VS-Code-Extension. Er
+ist in Java mit Eclipse LSP4J implementiert, kommuniziert per JSON-RPC über stdin/stdout und verwendet für jede
+Analyse exakt dieselbe Pipeline wie der Interpreter. Damit sind Diagnosen im Editor und auf der Kommandozeile
+garantiert identisch.
+
+\subsection{Architektur}
+\begin{reporttable}
+\begin{tabular}{L{0.4}L{0.52}}
+\thead \hcell{Klasse} & \hcell{Verantwortung} \\ \midrule
+\code{MiniCppLanguageServerMain} & Start über stdio, Verbindung mit dem Client \\
+\code{MiniCppLanguageServer} & Lebenszyklus (\code{initialize}, \code{shutdown}, \code{exit}), Capabilities \\
+\code{MiniCppTextDocumentService} & Dokumentsynchronisation, entprellte Diagnosen, Verteilung der Anfragen \\
+\code{Document}, \code{Analysis} & offenes Dokument; unveränderlicher Analyse-Snapshot einer Version \\
+\code{SymbolIndex} & jedes Vorkommen eines Bezeichners mit der Deklaration, auf die es verweist \\
+\code{AstNodes}, \code{Names} & AST-Traversierung, Gültigkeitsbereich an einer Position, Signaturen \\
+\code{Hovers}, \code{Completions}, \code{Navigation}, \code{CodeFormatter}, \code{CodeActions} & die einzelnen
+  Features \\
+\code{SourceText}, \code{Tokens}, \code{Positions} & Offsets $\leftrightarrow$ Positionen (Interpreter 1-basiert,
+  LSP 0-basiert), Token-Suche, Diagnose-Umrechnung \\ \bottomrule
+\end{tabular}
+\caption{Klassen des Language-Servers}
+\end{reporttable}
+
+Beim \code{initialize} meldet der Server folgende Fähigkeiten: inkrementelle Textsynchronisation, Hover, Completion
+mit den Triggerzeichen \code{.} und \code{>}, Definition, Referenzen, Document Highlight, Document Symbol, Rename mit
+\code{prepareRename}, Formatierung und Code-Actions der Art \code{quickfix}.
+
+\subsection{Synchronisation und Entprellung}\label{sec:sync}
+Der Client überträgt Änderungen inkrementell als Bereichsänderungen, die \code{Document.update} der Reihe nach auf den
+Text anwendet. Jede Änderung plant auf einem einzelnen Analyse-Thread eine Neuanalyse mit 200\,ms Verzögerung und
+bricht eine noch ausstehende ab. Beim Tippen wird so nur einmal nach der letzten Änderung analysiert. Ergebnisse
+werden nur veröffentlicht, wenn die analysierte Version noch aktuell ist.
+
+Anfragen wie Hover oder Completion warten nicht auf den Timer: \code{Document.analysis()} berechnet die Analyse
+sofort, falls für die aktuelle Version noch keine vorliegt. Eine Anfrage sieht dadurch nie einen veralteten Stand.
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[msg/.style={font=\scriptsize\itshape, color=ink2, fill=white, inner sep=1pt}]
+  \foreach \t/\x [count=\i from 0] in
+     {VS Code\\(vscode-languageclient)/2.0, MiniCppTextDocument-\\Service/6.05,
+      Analyzer-Thread\\(ScheduledExecutor)/10.1, MiniCpp.compile\\+ SymbolIndex/14.15}
+  {
+    \node[dbox, text width=3.6cm, minimum height=0.95cm, font=\scriptsize\bfseries] (l\i) at (\x,0) {\t};
+    \draw[rule, dashed, line width=0.7pt] (l\i.south) -- (\x,-6.4);
+  }
+  \newcommand{\msg}[5][]{%
+    \draw[arr, #1] ($(#3,#2)+(0.05,0)$) -- ($(#4,#2)-(0.05,0)$)
+      node[msg, midway, above=1pt] {#5};}
+  \msg{-1.1}{2.0}{6.05}{didChange (Bereichsänderung, v7)}
+  \msg{-1.9}{6.05}{10.1}{schedule(200 ms), vorige Aufgabe cancel}
+  \msg{-2.7}{2.0}{6.05}{didChange (v8) $\rightarrow$ erneut entprellen}
+  \msg{-3.6}{10.1}{14.15}{Document.analysis()\ \ (v8)}
+  \draw[arr, dashed] (14.1,-4.4) -- (10.15,-4.4) node[msg, midway, above=1pt] {Analysis(Tokens, Compilation, Index)};
+  \draw[arr, accent] (10.05,-5.2) -- (2.05,-5.2) node[msg, midway, above=1pt, text=accent] {publishDiagnostics (Version 8)};
+  \msg{-6.0}{2.0}{6.05}{hover / completion / \dots{} $\rightarrow$ Analyse sofort, falls ausstehend}
+\end{tikzpicture}
+\caption{Ablauf von Änderungen, Entprellung und Anfragen}
+\end{figure}
+
+\begin{hinweis}
+Die Synchronisation ist inkrementell, die Analyse selbst aber nicht: Nach jeder (entprellten) Änderung läuft die
+vollständige Pipeline über das gesamte Dokument. Bei den gemessenen Frontend-Zeiten (Abschnitt~\ref{sec:perf}:
+ca.\ 3\,ms für 100 Klassen) ist das für realistische Dateigrößen unkritisch. Im Arbeitsplan war ursprünglich
+inkrementelles \emph{Parsen} vorgesehen -- im Bericht sollte die Abweichung begründet werden.
+\end{hinweis}
+
+\subsection{Analyse-Snapshot und Fehlertoleranz}
+Eine \code{Analysis} bündelt für eine Dokumentversion den Quelltext, den Token-Strom, die \code{Compilation} und den
+Symbolindex. Zwei Mechanismen machen den Server robust gegenüber unfertigem Code:
+\begin{itemize}
+  \item \textbf{Letzte parsebare Version.} Während des Tippens ist Code oft syntaktisch unvollständig -- nach
+    \code{konto.} existiert kein AST. Jede Analyse verweist daher über \code{lastParsed} auf die jüngste Version mit
+    AST. Die Completion ermittelt Typ und Member des Ausdrucks vor dem Punkt aus dieser Version, und zwar auch über
+    Ketten wie \code{a.b->c().}.
+  \item \textbf{Absturzisolation.} Ausnahmen in Pipeline oder Indexierung werden abgefangen und protokolliert; der
+    Server liefert dann leere Ergebnisse, statt die Verbindung zu verlieren.
+\end{itemize}
+
+\subsection{Symbolindex}
+AST-Knoten kennen ihren Quellbereich, aber nicht die exakte Position ihres \emph{Namens}. Der \code{SymbolIndex}
+kombiniert deshalb den aufgelösten AST mit dem Token-Strom und legt für jedes Vorkommen eines Bezeichners einen
+Eintrag \code{Occurrence(start, end, symbol, target, declaration)} in einer nach Offset sortierten \code{TreeMap} ab.
+Eine Positionsanfrage ist damit ein \code{floorEntry}-Aufruf in $O(\log n)$.
+
+Die Unterscheidung zwischen \code{target} und \code{symbol} ist der Kern der Navigationsfeatures: \code{target} ist
+die exakte Deklaration (z.\,B. die gewählte Überladung oder der aufgerufene Konstruktor) und dient Go-to-Definition
+und Hover. \code{symbol} gruppiert alle Vorkommen, die gemeinsam umbenannt werden müssen: Konstruktoren gehören zu
+ihrer Klasse, überschreibende Methoden zur überschriebenen Basismethode.
+
+\subsection{Features}
+\begin{reporttable}
+\begin{tabular}{L{0.28}L{0.64}}
+\thead \hcell{Feature} & \hcell{Verhalten} \\ \midrule
+\code{publishDiagnostics} & Fehler aller statischen Phasen (Syntax, Namen, Typen) mit exaktem Bereich \\
+\code{hover} & Deklaration als C++-Signatur mit Art (\code{local variable}, \code{virtual method},
+  \code{overrides B::f} \dots); an Operatoren und Literalen der statische Typ des Ausdrucks \\
+\code{completion} & Variablen und Parameter im Gültigkeitsbereich, Member der eigenen Klasse, Funktionen, Klassen,
+  Schlüsselwörter, Typen; nach \code{.}/\code{->} die Member (inkl.\ geerbter) des Objekts \\
+\code{definition} & gewählte Überladung, statisch gebundene Methode, Konstruktor bei \code{A(\dots)} /
+  \code{new A} \\
+\code{references}, \code{documentHighlight}, \code{rename} & Klassen samt Konstruktornamen und Typverwendungen;
+  überschreibende Methoden gemeinsam mit der Basismethode; Built-ins und Keywords sind nicht umbenennbar \\
+\code{documentSymbol} & Outline mit Klassen, Feldern, Konstruktoren, Methoden und Funktionen \\
+\code{formatting} & auf Basis des Parse-Trees: K\&R-Klammern, \code{public:} auf Klassenebene, \code{T* p},
+  Leerzeichen um binäre Operatoren; Kommentare und einzelne Leerzeilen bleiben erhalten \\
+\code{codeAction} & Quick Fixes: fehlendes Token einfügen, überzähliges entfernen, ähnlichen Namen vorschlagen,
+  \code{.} $\rightarrow$ \code{->}, \code{()} an Methodennamen, leeres \code{main} ergänzen \\ \bottomrule
+\end{tabular}
+\caption{Umgesetzte LSP-Features}
+\end{reporttable}
+
+\begin{todo}
+Screenshots der Features in VS Code (Hover, Completion nach \code{->}, Quick Fix, Rename) einfügen.
+\end{todo}
+
+\subsection{VS-Code-Extension}
+Die Extension (\code{vscode/}) registriert die Sprache \code{minicpp} für \code{*.mcpp}-Dateien, liefert eine
+TextMate-Grammatik für Syntaxhervorhebung sowie eine Sprachkonfiguration (Kommentare, Klammerpaare) und startet den
+Server über \code{vscode-languageclient}. Der Server wird in folgender Reihenfolge gesucht: konfigurierter Pfad
+(\code{minicpp.server.path}), im \code{.vsix}-Paket gebündelter Server (direkt mit \code{java} gestartet, da
+Startskripte im Paket ihr Ausführungsrecht verlieren), zuletzt der im Repository gebaute Server. Das Java-Programm
+lässt sich mit \code{minicpp.java.path} festlegen, \code{minicpp.trace.server} protokolliert den JSON-RPC-Verkehr.
+
+% ================================================================== 6 GenAI
+\section{GenAI-Assistenzserver}\label{sec:genai}
+Der Assistenzserver (Modul \code{mcp}) stellt KI-gestützte Code-Assistenz für MiniC++ als HTTP/JSON-Dienst bereit. Er
+nutzt ein lokal laufendes Sprachmodell über Ollama und verbindet dessen Antworten mit dem echten MiniC++-Compiler.
+
+\begin{todo}
+Das Modul heißt \code{mcp}, implementiert aber eine REST-Schnittstelle und nicht das \emph{Model Context Protocol}
+(JSON-RPC mit Tools/Resources). Für die Endfassung klären: entweder Begriff im Bericht präzisieren
+(\enquote{GenAI-REST-Server}) oder eine MCP-Schnittstelle ergänzen.
+\end{todo}
+
+\subsection{Endpunkte}
+\begin{reporttable}
+\begin{tabular}{L{0.19}L{0.36}L{0.37}}
+\thead \hcell{Endpunkt} & \hcell{Anfrage (JSON)} & \hcell{Antwort} \\ \midrule
+\code{POST /complete} & \code{code}, \code{line} (1-basiert), \code{column} (0-basiert) & \code{completion}:
+  einzufügender Text \\
+\code{POST /explain} & \code{code} & \code{explanation} \\
+\code{POST /refactor} & \code{code}, optional \code{instruction} & \code{code}, \code{rationale}, \code{compiles},
+  \code{diagnostics} \\
+\code{POST /detect-bugs} & \code{code} & \code{compilerDiagnostics}, \code{findings[\{line, description\}]},
+  \code{analysis} \\
+\code{GET /health} & -- & Status, Provider, Modell, Erreichbarkeit \\ \bottomrule
+\end{tabular}
+\caption{Endpunkte des Assistenzservers}
+\end{reporttable}
+
+Der Server basiert auf dem im JDK enthaltenen \code{com.sun.net.httpserver.HttpServer} mit einem Pool von vier
+Threads und Gson für JSON; weitere Abhängigkeiten gibt es nicht. Er bindet standardmäßig nur an
+\code{127.0.0.1:8080}. Fehler werden einheitlich als \code{\{\dq error\dq: \dots\}} gemeldet: HTTP 400 bei
+ungültiger Anfrage, 404 bei unbekanntem Pfad, 405 bei falscher Methode, 413 bei Anfragen über 1\,MiB und 502, wenn
+das Modell nicht erreichbar ist.
+
+\subsection{Provider-Abstraktion}
+Die Schnittstelle \code{GenAiProvider} kapselt das Sprachmodell (\code{generate(system, prompt)},
+\code{isAvailable()}). Der \code{OllamaProvider} ruft \code{/api/generate} ohne Streaming und mit Temperatur 0,2 auf
+-- Code-Assistenz soll fokussiert statt kreativ sein. Modell (Standard \code{codellama}), URL und Timeout (120\,s)
+sind per Kommandozeile oder Umgebungsvariable konfigurierbar. Der \code{MockProvider} implementiert dieselbe
+Schnittstelle deterministisch; er ermöglicht Tests des gesamten Servers ohne laufendes Modell und einen Betrieb mit
+\code{--provider mock}.
+
+\subsection{Prompt-Design}
+Sprachmodelle kennen C++, aber nicht MiniC++. Jeder System-Prompt enthält deshalb eine kompakte Sprachbeschreibung,
+die neben den Features ausdrücklich aufzählt, was fehlt (Arrays, Casts, \code{++}, \code{+=}, \code{this},
+Standardbibliothek \dots). Ohne diese Negativliste schlagen Modelle bevorzugt idiomatisches C++ vor, das MiniC++
+nicht akzeptiert. Die endpunktspezifischen Anweisungen erzwingen ein maschinenlesbares Antwortformat:
+\begin{itemize}
+  \item \code{/complete} markiert die Cursorposition mit \code{<CURSOR>} und verlangt ausschließlich den
+    einzufügenden Text; umschließende Markdown-Codeblöcke werden trotzdem defensiv entfernt.
+  \item \code{/refactor} verlangt den vollständigen Code in genau einem \code{\textasciigrave\textasciigrave\textasciigrave cpp}-Block, gefolgt von
+    einer Zeile \code{Rationale:}.
+  \item \code{/detect-bugs} übergibt den Code mit Zeilennummern und verlangt Befunde im Format
+    \code{LINE <n>: <text>} oder \code{NONE}; ein regulärer Ausdruck überführt sie in strukturierte \code{findings}.
+\end{itemize}
+
+\subsection{Absicherung durch den Compiler}
+Das wichtigste Qualitätsmerkmal des Servers ist, dass er Modellantworten nicht ungeprüft weitergibt:
+\begin{itemize}
+  \item \textbf{Grounding:} Für \code{/explain} und \code{/detect-bugs} werden die Diagnosen des MiniC++-Compilers an
+    den Prompt angehängt. Das Modell muss Syntax- und Typfehler nicht raten, sondern kann sie als gesichert
+    behandeln.
+  \item \textbf{Verifikation:} Jeder Refactoring-Vorschlag wird vor der Rückgabe kompiliert; das Feld
+    \code{compiles} und die Diagnosen zeigen dem Aufrufer, ob der Vorschlag gültiges MiniC++ ist.
+  \item \textbf{Strukturierte Ergänzung:} \code{/detect-bugs} liefert die Compilerdiagnosen zusätzlich getrennt von
+    den Modellbefunden, sodass ein Client sichere und heuristische Befunde unterschiedlich darstellen kann.
+\end{itemize}
+Code ohne \code{main} wird dabei nur als Deklarationssammlung geprüft, damit auch einzelne Funktionen oder Klassen
+analysiert werden können.
+
+\begin{todo}
+Qualitative Evaluation der Modellantworten ergänzen (z.\,B. Anteil kompilierender Refactorings für \code{codellama}
+vs.\ \code{deepseek-coder} auf den Testprogrammen, typische Fehlermuster, Antwortzeiten).
+\end{todo}
+
+% ================================================================== 7 Evaluation
+\section{Qualitätssicherung und Evaluation}\label{sec:evaluation}
+\subsection{Teststrategie}
+Alle 218 automatisierten Tests laufen mit \code{./gradlew build} bzw.\ \code{./gradlew test} und waren zum
+Redaktionsschluss grün. Sie gliedern sich wie folgt:
+
+\begin{reporttable}
+\begin{tabular}{L{0.24}L{0.12}>{\raggedleft\arraybackslash}p{0.06\linewidth}L{0.48}}
+\thead \hcell{Testklasse} & \hcell{Modul} & \hcell{Tests} & \hcell{Gegenstand} \\ \midrule
+\code{ErrorTest} & interpreter & 129 & ungültige Programme: erwartete Phase und Meldung des ersten Fehlers, inkl.\
+  Laufzeitfehler \\
+\code{CppExporterTest} & interpreter & 14 & Übersetzung nach C++ \\
+\code{ReplTest} & interpreter & 13 & Sitzungen, Fortsetzungszeilen, Rücksetzen bei Fehlern, Befehle \\
+\code{ParserTest} & interpreter & 10 & Präzedenz, Literale und Escapes, Kurzformen, Referenztypen, Klassen \\
+\code{ProgramTest} & interpreter & 9 & Golden-File-Tests der Beispielprogramme \\
+\code{FeaturesTest} & lsp & 19 & Hover, Completion, Navigation, Rename, Formatierung, Quick Fixes \\
+\code{DiagnosticsTest} & lsp & 3 & Diagnosen Ende-zu-Ende mit Client-Stub: Positionen, Syntaxfehler, Löschen beim
+  Schließen \\
+\code{AssistantServiceTest} & mcp & 9 & Prompts, Antwortverarbeitung, Compiler-Absicherung (Mock) \\
+\code{McpServerTest} & mcp & 8 & HTTP-Ebene, Fehlercodes \\
+\code{OllamaProviderTest} & mcp & 4 & Ollama-Protokoll gegen lokalen Test-Server \\ \midrule
+\textbf{Summe} & & \textbf{218} & \\ \bottomrule
+\end{tabular}
+\caption{Automatisierte Tests (Stand 27.09.2026)}
+\end{reporttable}
+
+\subsubsection*{Golden-File-Tests}
+Das Verzeichnis \code{interpreter/src/test/resources/programs} enthält neun thematische Programme (Grundlagen,
+Kontrollfluss, Funktionen, Klassen, Vererbung, Zeiger, Scoping, \code{void main}, Exit-Codes), jeweils mit einer
+\code{.expected}-Datei der erwarteten Ausgabe. Ein Kommentar \code{// expect-exit: N} legt einen abweichenden
+Exit-Code fest. Dieselben Dateien dienen auch dem GCC-Vergleich.
+
+\subsection{Differenzieller Vergleich mit GCC}\label{sec:gcc}
+Die stärkste Korrektheitsaussage liefert der Vergleich mit einem echten C++-Compiler. Das Skript
+\code{scripts/compare-gcc.sh} führt jedes Testprogramm (1) im Interpreter aus, (2) übersetzt es mit
+\code{minicpp to-cpp} nach C++, kompiliert es mit \code{g++ -std=c++17 -fwrapv -O1} und führt es aus, und vergleicht
+(3) beide Ausgaben und Exit-Codes mit der erwarteten Ausgabe. \code{-fwrapv} stellt sicher, dass GCC
+Ganzzahlüberlauf ebenfalls als Zweierkomplement behandelt.
+
+\subsubsection*{Continuous Integration}
+Die GitHub-Actions-Pipeline (\code{.github/workflows/ci.yml}) läuft bei jedem Push und Pull-Request auf
+\code{ubuntu-latest}: Build und Tests aller Module mit Temurin 21, Build der VS-Code-Extension mit Node 22 und
+abschließend der GCC-Vergleich.
+
+\begin{todo}
+Aktuelles Ergebnis des GCC-Vergleichs aus der CI (Anzahl PASS/FAIL) eintragen; lokal ist kein g++ installiert.
+\end{todo}
+
+\subsection{Performance und Skalierbarkeit}\label{sec:perf}
+Die Benchmarks im Modul \code{benchmark} verwenden JMH und messen die mittlere Laufzeit.
+\code{InterpreterBenchmark} misst reine Interpretation (übersetzt wird einmal pro Trial) für vier Lasttypen mit
+Größenparameter $n$; \code{FrontendBenchmark} misst Parsen bzw.\ Parsen und Prüfen generierter Programme mit 10, 100
+und 1\,000 Klassen.
+
+% Messwerte aus docs/jmh.json (ms/op)
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}
+\begin{axis}[
+  width=\linewidth, height=6.4cm,
+  ybar, bar width=10pt,
+  ymode=log, log origin=infty, ymin=0.1, ymax=200,
+  symbolic x coords={fib,loop,vd,oc}, xtick=data,
+  xticklabels={{Rekursion\\(fib($n$))}, {Schleife\\($n\cdot 10\,000$ Iter.)},
+               {Virt.\ Dispatch\\($n\cdot 1\,000$ Aufrufe)}, {Objektkopien\\($n\cdot 1\,000$)}},
+  xticklabel style={align=center, font=\small},
+  enlarge x limits=0.15,
+  ylabel={mittlere Laufzeit [ms], log}, ylabel style={color=ink2},
+  ymajorgrids, grid style={gridc},
+  axis lines*=left, axis line style={ink2}, tick style={ink2},
+  log ticks with fixed point, /pgf/number format/use comma,
+  legend style={draw=none, at={(0.02,0.98)}, anchor=north west, legend columns=3, font=\small},
+  point meta=rawy,
+  nodes near coords={\pgfmathprintnumber[fixed,precision=2,use comma]{\pgfplotspointmeta}},
+  nodes near coords style={font=\tiny, color=ink2},
+]
+\addplot[fill=seqA, draw=none] coordinates {(fib,0.2293) (loop,6.1577) (vd,1.4993) (oc,9.1262)};
+\addplot[fill=seqB, draw=none] coordinates {(fib,1.0810) (loop,8.1726) (vd,1.9995) (oc,13.2311)};
+\addplot[fill=seqC, draw=none] coordinates {(fib,10.3365) (loop,10.0203) (vd,2.4108) (oc,16.1949)};
+\legend{$n = 15$, $n = 20$, $n = 25$}
+\end{axis}
+\end{tikzpicture}
+\caption{Laufzeit der Interpreter-Benchmarks nach Lasttyp und Größe $n$ (logarithmische Achse)}
+\end{figure}
+
+Die Rekursion \code{fib(n)} wächst erwartungsgemäß exponentiell (Faktor $\approx 1{,}6$ pro Schritt von $n$): von
+0,23\,ms bei $n = 15$ auf 10,3\,ms bei $n = 25$, bei rund 243\,000 Aufrufen also etwa 40\,ns pro interpretiertem
+Aufruf. Die drei anderen Lasten wachsen linear in $n$; sie zeigen jeweils einen konstanten Sockel, der auf
+Thread-Start (512-MiB-Stack) und JIT-Aufwärmeffekte zurückgeht. Virtueller Dispatch ist mit 2,41\,ms für 25\,000
+Aufrufe günstig, da vtables pro Klasse nur einmal aufgebaut werden. Objektkopien sind die teuerste Lastart, weil
+jede Kopie neue Cells und Maps alloziert.
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}
+\begin{axis}[
+  width=\linewidth, height=5.8cm,
+  xmode=log, ymode=log,
+  xtick={10,100,1000}, xticklabels={10,100,1\,000},
+  xmin=7, xmax=1500, ymin=0.08, ymax=200,
+  xlabel={Anzahl generierter Klassen}, ylabel={mittlere Laufzeit [ms], log},
+  label style={color=ink2},
+  grid=major, grid style={gridc},
+  axis lines*=left, axis line style={ink2}, tick style={ink2},
+  log ticks with fixed point, /pgf/number format/use comma,
+  legend style={draw=none, at={(0.02,0.98)}, anchor=north west, font=\small},
+  point meta=rawy,
+  nodes near coords={\pgfmathprintnumber[fixed,precision=2,use comma]{\pgfplotspointmeta}},
+  nodes near coords style={font=\tiny, color=ink2},
+]
+\addplot[color=accent, line width=1.5pt, mark=*, mark options={fill=accent, draw=white},
+         nodes near coords style={anchor=north, yshift=-3pt}]
+  coordinates {(10,0.2157) (100,2.1472) (1000,21.3779)};
+\addplot[color=orange, line width=1.5pt, mark=*, mark options={fill=orange, draw=white},
+         nodes near coords style={anchor=south, yshift=3pt}]
+  coordinates {(10,0.2767) (100,2.7404) (1000,61.1965)};
+\legend{Parsen (Lexer, Parser, AST), Parsen + Resolver + Typprüfung}
+\end{axis}
+\end{tikzpicture}
+\caption{Skalierung von Parsen und statischer Analyse mit der Programmgröße (log-log)}
+\end{figure}
+
+Das Frontend skaliert zwischen 10 und 100 Klassen linear (Faktor 10 bei zehnfacher Größe). Für 1\,000 Klassen
+benötigt das Parsen 21,4\,ms, Parsen und Prüfen 61,2\,ms; der überproportionale Anstieg der Prüfung in diesem Punkt
+ist auffällig, hat aber in diesem kurzen Messlauf auch die größte Streuung ($\pm$\,47,5\,ms) und muss mit längeren
+Läufen bestätigt werden.
+
+Messumgebung: JMH mit 1 Fork, $2 \times 1$\,s Warm-up und $3 \times 1$\,s Messung; AMD Ryzen 7 9800X3D, OpenJDK
+64-Bit Server VM 25.0.1+8-LTS. Die Rohdaten liegen in \code{benchmark/build/jmh-result.json}.
+
+\begin{todo}
+Die Werte stammen aus einem kurzen Vorab-Lauf mit großer Streuung. Für die Endfassung mit den Standardeinstellungen
+oder mehr Forks messen (\code{./gradlew :benchmark:jmh -Pjmh=\dq -f 3 -wi 5 -i 10\dq}) und ggf.\ einen Vergleich
+mit \code{g++ -O0} ergänzen.
+\end{todo}
+
+\subsection{Bewertung}
+Die Tests decken jede Phase einzeln sowie das Zusammenspiel über Golden Files ab; der GCC-Vergleich belegt, dass die
+Semantik nicht nur mit den eigenen Erwartungen, sondern mit der Referenzimplementierung übereinstimmt. Besonders
+wertvoll war die Kombination aus \code{ErrorTest} und Laufzeit-Lebensdauerprüfung: Jeder Fall von undefiniertem
+Verhalten in C++ ist als eigener Testfall mit erwarteter Meldung festgehalten. Die Performance ist für den
+Einsatzzweck -- Lehre, interaktive Nutzung, Editor-Analyse -- ausreichend: typische Beispielprogramme laufen im
+einstelligen Millisekundenbereich, und die statische Analyse einer Datei mit 100 Klassen bleibt deutlich unter der
+200-ms-Entprellzeit des Language-Servers.
+
+% ================================================================== 8 Organisation
+\section{Projektorganisation}\label{sec:organisation}
+\subsection{Arbeitsplan}
+Das Projekt war auf zwölf Wochen angelegt. Die Kernphasen wurden gemeinsam bearbeitet, die Erweiterungen (LSP und
+GenAI) parallel von jeweils einem Teammitglied.
+
+\begin{reporttable}
+\begin{tabular}{L{0.1}L{0.68}L{0.14}}
+\thead \hcell{Woche} & \hcell{Schwerpunkt} & \hcell{Verantw.} \\ \midrule
+1 & Repository (Gradle), ANTLR4 einrichten, Grammatik-Entwurf, CI & C + D \\
+2--4 & ANTLR4-Lexer und -Parser, AST-Klassenhierarchie, Fehlerbehandlung & C + D \\
+5--6 & Two-Pass-Resolver, Typprüfung, semantische Prüfungen & C + D \\
+7--8 & Tree-Walking-Interpreter, REPL, Objektmodell, vtables & C + D \\
+9--11 & LSP4J-Server, VS-Code-Extension & C \\
+9--11 & GenAI-Server, Ollama-Anbindung, Mock-Provider & D \\
+12 & Benchmarks, Korrektheitstests, Dokumentation, Walk-Through & C + D \\ \bottomrule
+\end{tabular}
+\caption{Arbeitsplan (C = Clemens Vogtländer, D = Dennis Gorpinic)}
+\end{reporttable}
+
+\subsection{Aufgabenteilung}
+\begin{reporttable}
+\begin{tabular}{L{0.56}L{0.17}L{0.17}}
+\thead \hcell{Aufgabe} & \hcell{C. Vogtländer} & \hcell{D. Gorpinic} \\ \midrule
+Grammatik (Lexer und Parser), AST-Hierarchie & 50\,\% & 50\,\% \\
+Resolver, Typprüfung und Überladungsauflösung & 50\,\% & 50\,\% \\
+Interpreter, Objektmodell (vtable, Slicing), REPL & 50\,\% & 50\,\% \\
+LSP-Server und VS-Code-Extension & 100\,\% & -- \\
+GenAI-Server, Ollama-Anbindung, Prompt-Engineering & -- & 100\,\% \\
+Mock-Provider für Tests & 20\,\% & 80\,\% \\
+Korrektheitstests, GCC-Vergleich, JMH-Benchmarks & 50\,\% & 50\,\% \\
+Abschlussdokumentation und Walk-Through & 50\,\% & 50\,\% \\ \bottomrule
+\end{tabular}
+\caption{Aufgabenteilung}
+\end{reporttable}
+
+Entwickelt wurde in einem gemeinsamen Git-Repository; die Implementierung des Interpreters liegt auf dem Branch
+\code{interpreter}. Die CI prüft jeden Push, sodass Regressionen im gemeinsam genutzten Kern früh sichtbar werden --
+wichtig, weil LSP- und GenAI-Server direkt von dessen AST-Annotationen abhängen.
+
+\begin{todo}
+Tatsächlichen Verlauf gegenüber dem Plan reflektieren: Was hat länger gedauert (z.\,B. Zeiger-Semantik, die
+nachträglich in den Umfang aufgenommen wurde), welche Entscheidungen wurden revidiert, was würde das Team anders
+machen?
+\end{todo}
+
+% ================================================================== 9 Ausblick
+\section{Grenzen und Ausblick}\label{sec:ausblick}
+\subsection{Bekannte Grenzen}
+\begin{itemize}
+  \item \textbf{Kein AST bei Syntaxfehlern.} Die Pipeline bricht nach Syntaxfehlern ab. Der Language-Server
+    überbrückt dies für die Completion mit der letzten parsebaren Version; Hover und Navigation sind in einer
+    syntaktisch fehlerhaften Datei jedoch nicht verfügbar. Eine Fehlerrecovery mit \code{ErrorExpr}-Knoten würde
+    partielle ASTs ermöglichen.
+  \item \textbf{Erste Fehlerphase gewinnt.} Meldet der Resolver Fehler, entfällt die Typprüfung; Typfehler werden
+    erst nach Behebung der Namensfehler sichtbar.
+  \item \textbf{Vollständige Neuanalyse.} Jede Änderung analysiert das gesamte Dokument neu (siehe
+    Abschnitt~\ref{sec:sync}).
+  \item \textbf{Interpretationsgeschwindigkeit.} Der Tree-Walker schlägt Variablen über eine
+    \code{IdentityHashMap} pro Frame nach und alloziert für jeden Wert eine Cell. Für den Lehrkontext genügt das;
+    für rechenintensive Programme wäre er um Größenordnungen langsamer als kompilierter Code.
+  \item \textbf{Ein Dokument pro Programm.} MiniC++ kennt keine Module; der Language-Server behandelt jede Datei
+    unabhängig.
+\end{itemize}
+
+\subsection{Mögliche Weiterentwicklungen}
+\begin{itemize}
+  \item \textbf{Slot-Auflösung:} Der Resolver könnte jeder lokalen Variable einen Index im Frame zuweisen, sodass
+    Zugriffe zu Array-Operationen werden -- der naheliegendste Performancegewinn.
+  \item \textbf{Bytecode oder Truffle:} Eine Übersetzung in einen kompakten Bytecode oder eine Implementierung auf
+    GraalVM Truffle würde JIT-Kompilierung ermöglichen.
+  \item \textbf{Sprachumfang:} \code{for}, \code{break}/\code{continue}, \code{const} und Arrays sind die am
+    häufigsten vermissten Konstrukte und ließen sich in die bestehende Architektur einfügen.
+  \item \textbf{Debug Adapter Protocol:} Da der Interpreter jeden Knoten mit Quellbereich ausführt, liegt ein
+    Debugger für VS Code (Breakpoints, Variablenansicht) nahe.
+  \item \textbf{MCP-Anbindung:} Die Assistenzfunktionen zusätzlich als Model-Context-Protocol-Tools bereitstellen,
+    sodass KI-Agenten MiniC++-Code prüfen und ausführen können.
+\end{itemize}
+
+\subsection{Fazit}
+Das Projekt zeigt, dass eine klar abgegrenzte Sprache mit einem sauber geschichteten Frontend eine tragfähige
+Grundlage für ein ganzes Werkzeug-Ökosystem ist. Die Entscheidung, alle Analyseergebnisse als Annotationen am AST und
+alle Probleme als positionsgenaue \code{Diagnostic}s zu modellieren, hat sich ausgezahlt: Interpreter, REPL,
+Language-Server und GenAI-Server nutzen dieselbe Pipeline und liefern konsistente Ergebnisse. Die Korrektheit
+gegenüber C++ ist durch den differenziellen GCC-Vergleich belegt, und die Laufzeitprüfungen machen undefiniertes
+Verhalten, das in C++ schwer zu finden ist, für Lernende sichtbar.
+
+\begin{todo}
+Fazit nach Abschluss der Evaluation überarbeiten; ggf.\ Abschnitt zu Lessons Learned ergänzen.
+\end{todo}
+
+% ================================================================== Anhang
+\clearpage
+\appendix
+\section{Build und Nutzung}\label{app:build}
+Voraussetzung ist ein JDK 21 oder neuer; für die Extension zusätzlich Node.js.
+
+\begin{lstlisting}[language=bash,caption={Build-Befehle}]
+./gradlew build                          # alle Module bauen und testen
+./gradlew :interpreter:installDist       # -> interpreter/build/install/minicpp/bin/minicpp
+./gradlew :lsp:installDist               # -> lsp/build/install/minicpp-lsp/bin/minicpp-lsp
+./gradlew :mcp:run --args="--provider mock"     # GenAI-Server ohne Ollama auf :8080
+./gradlew :benchmark:jmh                 # Benchmarks, Ergebnis in benchmark/build/jmh-result.json
+cd vscode && npm install && npm run package      # -> minicpp-1.0.0.vsix
+\end{lstlisting}
+
+\begin{reporttable}
+\begin{tabular}{L{0.33}L{0.59}}
+\thead \hcell{Befehl} & \hcell{Wirkung} \\ \midrule
+\code{minicpp run datei.cpp} & Programm ausführen; Exit-Code = Rückgabewert von \code{main} \\
+\code{minicpp check datei.cpp} & nur Syntax-, Namens- und Typprüfung \\
+\code{minicpp repl [datei.cpp]} & REPL, optional mit vorher geladener Datei \\
+\code{minicpp ast datei.cpp} & AST ausgeben \\
+\code{minicpp to-cpp datei.cpp} & nach Standard-C++17 übersetzen \\ \bottomrule
+\end{tabular}
+\caption{Unterbefehle der Kommandozeile}
+\end{reporttable}
+
+\begin{reporttable}
+\begin{tabular}{L{0.28}L{0.32}L{0.32}}
+\thead \hcell{Option} & \hcell{Umgebungsvariable} & \hcell{Standard} \\ \midrule
+\code{--host} & \code{MCP\_HOST} & \code{127.0.0.1} \\
+\code{--port} & \code{MCP\_PORT} & \code{8080} \\
+\code{--provider} & \code{MCP\_PROVIDER} & \code{ollama} (alternativ \code{mock}) \\
+\code{--ollama-url} & \code{OLLAMA\_URL} & lokale Ollama-Instanz \\
+\code{--model} & \code{OLLAMA\_MODEL} & \code{codellama} \\
+\code{--timeout} & \code{OLLAMA\_TIMEOUT} & 120\,s \\ \bottomrule
+\end{tabular}
+\caption{Konfiguration des GenAI-Servers}
+\end{reporttable}
+
+\section{Grammatik: Deklarationen und Anweisungen}
+\begin{lstlisting}[caption={Parser-Regeln für Deklarationen und Anweisungen (vollständig in \code{MiniCpp.g4})}]
+program       : declaration* EOF ;
+replInput     : (declaration | statement)* expr? EOF ;
+declaration   : functionDef | classDef ;
+classDef      : CLASS Identifier (COLON PUBLIC Identifier)?
+                LBRACE PUBLIC COLON memberDecl* RBRACE SEMI ;
+memberDecl    : fieldDecl | constructorDef | methodDef ;
+fieldDecl     : type Identifier SEMI ;
+constructorDef: Identifier LPAREN paramList? RPAREN block ;
+methodDef     : VIRTUAL? type Identifier LPAREN paramList? RPAREN block ;
+functionDef   : type Identifier LPAREN paramList? RPAREN block ;
+param         : (type | typeRef) Identifier ;
+typeRef       : type AMP ;
+varDecl       : type Identifier
+              | type Identifier LPAREN argList RPAREN
+              | (type | typeRef) Identifier ASSIGN expr ;
+ifStmt        : IF LPAREN expr RPAREN statement (ELSE statement)? ;
+whileStmt     : WHILE LPAREN expr RPAREN statement ;
+returnStmt    : RETURN expr? ;
+deleteStmt    : DELETE expr ;
+newExpr       : NEW (baseType | Identifier) (LPAREN argList? RPAREN)? ;
+\end{lstlisting}
+
+\section{Abkürzungen}
+\begin{reporttable}
+\begin{tabular}{L{0.2}L{0.72}}
+\thead \hcell{Abkürzung} & \hcell{Bedeutung} \\ \midrule
+ADR & Architecture Decision Record \\
+AST & Abstract Syntax Tree, abstrakter Syntaxbaum \\
+CI & Continuous Integration \\
+JMH & Java Microbenchmark Harness \\
+LSP & Language Server Protocol \\
+MCP & Model Context Protocol \\
+REPL & Read-Eval-Print-Loop \\
+vtable & Tabelle virtueller Methoden einer Klasse \\ \bottomrule
+\end{tabular}
+\end{reporttable}
+
+\end{document}

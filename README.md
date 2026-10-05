@@ -230,7 +230,27 @@ curl -s localhost:8080/refactor -d '{"code": "...", "instruction": "extract a fu
 curl -s localhost:8080/detect-bugs -d '{"code": "..."}'
 ```
 
-Optionen (auch als Umgebungsvariablen): `--host` (`MCP_HOST`, Standard `127.0.0.1`), `--port` (`MCP_PORT`, 8080), `--provider` (`MCP_PROVIDER`, `ollama`|`mock`), `--ollama-url` (`OLLAMA_URL`), `--model` (`OLLAMA_MODEL`, `codellama`), `--timeout` (`OLLAMA_TIMEOUT`, 120 s). Fehler werden als `{"error": ...}` mit HTTP 400 (ungültige Anfrage), 405, 413 oder 502 (Provider nicht erreichbar) gemeldet.
+Optionen (auch als Umgebungsvariablen): `--transport` (`MCP_TRANSPORT`, `http`|`stdio`, Standard `http`), `--host` (`MCP_HOST`, Standard `127.0.0.1`), `--port` (`MCP_PORT`, 8080), `--provider` (`MCP_PROVIDER`, `ollama`|`mock`), `--ollama-url` (`OLLAMA_URL`), `--model` (`OLLAMA_MODEL`, `codellama`), `--timeout` (`OLLAMA_TIMEOUT`, 120 s). Fehler werden als `{"error": ...}` mit HTTP 400 (ungültige Anfrage), 405, 413 oder 502 (Provider nicht erreichbar) gemeldet.
+
+#### Model Context Protocol (stdio)
+
+Mit `--transport stdio` spricht derselbe Server das [Model Context Protocol](https://modelcontextprotocol.io) (JSON-RPC 2.0, eine Nachricht pro Zeile auf stdin/stdout, Protokollversionen 2024-11-05 bis 2025-11-25). Hier ist kein GenAI-Provider beteiligt: Das Modell des MCP-Hosts (Claude Code, Claude Desktop, VS Code …) übernimmt das Denken und nutzt Compiler und Interpreter als Werkzeuge, um seinen MiniC++-Code zu prüfen und auszuführen.
+
+| Tool | Funktion |
+|---|---|
+| `check` | Syntax-, Namens- und Typprüfung; Diagnosen (Zeile 1-basiert, Spalte 0-basiert) |
+| `run` | Programm ausführen: Ausgabe (max. 100 kB), Exit-Code, Compile- oder Laufzeitfehler; Zeitlimit `timeoutSeconds` (Standard 10 s, max. 60 s) |
+| `ast` | abstrakter Syntaxbaum oder Syntaxfehler |
+| `to_cpp` | Übersetzung nach Standard-C++ |
+
+Jedes Ergebnis kommt als Text und strukturiert (`structuredContent`). Die Ressource `minicpp://language` beschreibt den Sprachumfang; dieselbe Beschreibung steht in den `instructions` des Handshakes. Lang laufende Aufrufe blockieren `ping` nicht und lassen sich mit `notifications/cancelled` abbrechen; Interpreter-Schleifen und -Aufrufe prüfen dafür den Interrupt-Status des Threads.
+
+```sh
+./gradlew :mcp:installDist      # erzeugt mcp/build/install/minicpp-mcp
+claude mcp list                 # Claude Code findet den Server über .mcp.json im Projektwurzelverzeichnis
+```
+
+Für andere Hosts lautet der Startbefehl `java -cp "mcp/build/install/minicpp-mcp/lib/*" de.cvogtlaender.mcp.McpServerMain --transport stdio` (mit absolutem Pfad, falls der Host nicht im Projektverzeichnis startet).
 
 ### Evaluation
 
