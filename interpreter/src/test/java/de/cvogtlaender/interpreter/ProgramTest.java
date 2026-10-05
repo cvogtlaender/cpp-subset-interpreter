@@ -20,8 +20,7 @@ import org.junit.jupiter.params.provider.MethodSource;
 /**
  * Runs every {@code programs/*.cpp} and compares its output with the
  * {@code .expected} file next to it. A line {@code // expect-exit: N} sets the
- * expected exit code (default 0). The same files are used for the comparison
- * against GCC (see scripts/compare-gcc.sh).
+ * expected exit code (default 0).
  */
 class ProgramTest {
 

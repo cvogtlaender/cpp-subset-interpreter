@@ -6,11 +6,11 @@
 
 ## Beschreibung
 
-Das Projekt entwickelt ein vollständiges, interaktives Interpreter-Ökosystem für einen formal definierten C++-Subdialekt. Die Kernaufgabe basiert auf Blatt 08 der CB-Vorlesung und wird um professionelle Entwicklerwerkzeuge (LSP) und KI-Integration (MCP/GenAI) erweitert. Das System gliedert sich in vier Säulen:
+Das Projekt entwickelt ein vollständiges, interaktives Interpreter-Ökosystem für einen formal definierten C++-Subdialekt. Die Kernaufgabe basiert auf Blatt 08 der CB-Vorlesung und wird um professionelle Entwicklerwerkzeuge (LSP) und KI-Integration (Model Context Protocol) erweitert. Das System gliedert sich in vier Säulen:
 
 1. **Kern-Interpreter** (gemeinsam): Lexer, Parser, AST, Resolver, Typprüfung, Tree-Walking-Interpreter und REPL.
 2. **LSP-Server** (Clemens Vogtländer): Inkrementelle IDE-Integration über das Language Server Protocol 3.17, Zielplattform VS Code.
-3. **MCP-Server** (Dennis Gorpinic): GenAI-Anbindung für Code-Assistenz (Vervollständigung, Refactoring, Bug-Detection) via Ollama (lokal).
+3. **MCP-Server** (Dennis Gorpinic): Compiler und Interpreter als Werkzeuge für KI-Assistenten über das Model Context Protocol (JSON-RPC 2.0 über stdio).
 4. **Evaluation**: Korrektheit, Performance und Skalierbarkeit.
 
 ### Getroffene Architekturentscheidungen
@@ -20,7 +20,7 @@ Die folgenden Entscheidungen wurden gemeinsam getroffen und als Architecture Dec
 - **Implementierungssprache: Java** – Java bietet eine ausgereifte Standardbibliothek, starke IDE-Unterstützung und eignet sich gut für objektorientierte AST-Modellierung via Klassenhierarchien und dem Visitor-Pattern. Der Tree-Walking-Interpreter lässt sich sauber über Visitor-Klassen strukturieren.
 - **Parser-Strategie: ANTLR4** – ANTLR4 ist der de-facto-Standard-Parser-Generator für die JVM; er generiert sowohl Lexer als auch Parser aus einer einheitlichen `.g4`-Grammatik. LL(*)-Parsing mit automatischer Fehlerbehandlung, umfangreiche Dokumentation und aktive Community.
 - **LSP-Zielplattform: VS Code** – Die VS Code Extension API ist gut dokumentiert; `LSP4J` dient als Java-seitige LSP-Grundlage.
-- **GenAI-Provider: Ollama (lokal)** – Kein API-Schlüssel erforderlich, keine Betriebskosten, keine Datenschutzprobleme. Empfohlene Modelle: `codellama` oder `deepseek-coder`.
+- **KI-Integration: Model Context Protocol** – Statt eines eigenen Sprachmodells mit eigener REST-API stellt der Server Compiler und Interpreter als MCP-Tools bereit. Das Modell des MCP-Hosts (Claude Code, Claude Desktop, VS Code …) übernimmt das Denken; der Server liefert verlässliche Fakten (Diagnosen, Ausgaben). Kein API-Schlüssel, kein Modellbetrieb, keine Prompts im Server.
 
 ---
 
@@ -95,15 +95,13 @@ Implementiert Language Server Protocol 3.17 über JSON-RPC mit der Java-Biblioth
 
 #### MCP
 
-Stellt GenAI-Funktionalitäten über REST bereit und bindet Ollama als lokalen GenAI-Provider an. Empfohlene Modelle: `codellama` oder `deepseek-coder`. Da Ollama lokal läuft, entfallen API-Kosten und Datenschutzbedenken. Ein Mock-Provider implementiert dasselbe Interface für deterministische Tests.
+Implementiert das [Model Context Protocol](https://modelcontextprotocol.io) über JSON-RPC 2.0 auf stdin/stdout. KI-Assistenten nutzen den echten Compiler und Interpreter als Werkzeuge, um ihren MiniC++-Code zu prüfen und auszuführen, statt den Sprachumfang zu raten.
 
-| Endpunkt | GenAI | Funktion |
-|---|---|---|
-| `/complete` | Ja | Code-Vervollständigung an Cursor-Position |
-| `/explain` | Ja | Natürlichsprachliche Erklärung eines Code-Fragments |
-| `/refactor` | Ja | Refactoring-Vorschlag mit Begründung |
-| `/detect-bugs` | Ja | Potenzielle Laufzeit- und Logikfehler erkennen |
-| `/health` | Nein | Server-Status und Modell-Info |
+| Tool | Funktion |
+|---|---|
+| `check` | Syntax-, Namens- und Typprüfung |
+| `run` | Programm mit Zeitlimit ausführen |
+| `ast` | abstrakter Syntaxbaum |
 
 ---
 
@@ -122,7 +120,6 @@ Voraussetzung ist ein JDK 21 oder neuer.
 | `minicpp check datei.cpp` | nur Syntax-, Namens- und Typprüfung |
 | `minicpp repl [datei.cpp]` | REPL, optional mit vorher geladener Datei |
 | `minicpp ast datei.cpp` | AST ausgeben |
-| `minicpp to-cpp datei.cpp` | nach Standard-C++ übersetzen (für den GCC-Vergleich) |
 
 Ohne Installation: `./gradlew :interpreter:run --args="run examples/features.cpp"` bzw. `--args="repl"`.
 
@@ -155,7 +152,6 @@ Eine Eingabe darf Klassen, Funktionen und Anweisungen enthalten; ein abschließe
 | `visitor/TypeCheckVisitor` | Typprüfung, Überladungsauflösung, L-Wert-Prüfung, Return-Pfade, Overrides/`virtual`, Einstiegspunkt |
 | `runtime/Interpreter` | Tree-Walking-Interpreter mit Activation Records, `Cell`s für Referenzen und Zeiger (mit Lebensdauerprüfung), Objekten mit Wertsemantik, vtables |
 | `repl/Repl` | REPL mit Sitzungs-Scope |
-| `cpp/CppExporter` | Übersetzung nach Standard-C++ |
 | `diagnostic/Diagnostic` | Fehler mit Phase (`SYNTAX`, `RESOLVE`, `TYPE`, `RUNTIME`) und Quellbereich |
 
 Präzisierungen der Sprache, wo die Anforderungen offen waren:
@@ -215,33 +211,13 @@ Die Extension registriert die Sprache `minicpp` für `*.mcpp`; in `examples/` or
 
 ### MCP-Server (`mcp/`)
 
-REST-Server gemäß der Endpunkt-Tabelle oben, mit Ollama als Provider und einem `MockProvider` für Tests. Die Antworten werden mit dem echten Compiler abgesichert: Compiler-Diagnosen fließen in die Prompts ein, `/detect-bugs` liefert sie zusätzlich strukturiert, und jeder Refactoring-Vorschlag wird vor der Rückgabe kompiliert (`"compiles": true/false`).
-
-```sh
-ollama pull codellama
-./gradlew :mcp:run                                   # http://127.0.0.1:8080, Provider Ollama
-./gradlew :mcp:run --args="--provider mock"          # ohne Ollama
-./gradlew :mcp:run --args="--model deepseek-coder --port 9000"
-
-curl -s localhost:8080/health
-curl -s localhost:8080/explain -d '{"code": "int main() { return 0; }"}'
-curl -s localhost:8080/complete -d '{"code": "int main() {\n\n}", "line": 2, "column": 0}'
-curl -s localhost:8080/refactor -d '{"code": "...", "instruction": "extract a function"}'
-curl -s localhost:8080/detect-bugs -d '{"code": "..."}'
-```
-
-Optionen (auch als Umgebungsvariablen): `--transport` (`MCP_TRANSPORT`, `http`|`stdio`, Standard `http`), `--host` (`MCP_HOST`, Standard `127.0.0.1`), `--port` (`MCP_PORT`, 8080), `--provider` (`MCP_PROVIDER`, `ollama`|`mock`), `--ollama-url` (`OLLAMA_URL`), `--model` (`OLLAMA_MODEL`, `codellama`), `--timeout` (`OLLAMA_TIMEOUT`, 120 s). Fehler werden als `{"error": ...}` mit HTTP 400 (ungültige Anfrage), 405, 413 oder 502 (Provider nicht erreichbar) gemeldet.
-
-#### Model Context Protocol (stdio)
-
-Mit `--transport stdio` spricht derselbe Server das [Model Context Protocol](https://modelcontextprotocol.io) (JSON-RPC 2.0, eine Nachricht pro Zeile auf stdin/stdout, Protokollversionen 2024-11-05 bis 2025-11-25). Hier ist kein GenAI-Provider beteiligt: Das Modell des MCP-Hosts (Claude Code, Claude Desktop, VS Code …) übernimmt das Denken und nutzt Compiler und Interpreter als Werkzeuge, um seinen MiniC++-Code zu prüfen und auszuführen.
+Der Server spricht das [Model Context Protocol](https://modelcontextprotocol.io): JSON-RPC 2.0, eine Nachricht pro Zeile auf stdin/stdout, Protokollversionen 2024-11-05 bis 2025-11-25. Es ist kein eigenes Sprachmodell beteiligt: Das Modell des MCP-Hosts (Claude Code, Claude Desktop, VS Code …) übernimmt das Denken und nutzt Compiler und Interpreter als Werkzeuge, um seinen MiniC++-Code zu prüfen und auszuführen. Die Implementierung (`McpStdioServer`, `MiniCppTools`) kommt ohne MCP-SDK aus und nutzt nur Gson.
 
 | Tool | Funktion |
 |---|---|
-| `check` | Syntax-, Namens- und Typprüfung; Diagnosen (Zeile 1-basiert, Spalte 0-basiert) |
+| `check` | Syntax-, Namens- und Typprüfung; Diagnosen (Zeile 1-basiert, Spalte 0-basiert). `main` ist nur erforderlich, wenn der Code eines definiert |
 | `run` | Programm ausführen: Ausgabe (max. 100 kB), Exit-Code, Compile- oder Laufzeitfehler; Zeitlimit `timeoutSeconds` (Standard 10 s, max. 60 s) |
 | `ast` | abstrakter Syntaxbaum oder Syntaxfehler |
-| `to_cpp` | Übersetzung nach Standard-C++ |
 
 Jedes Ergebnis kommt als Text und strukturiert (`structuredContent`). Die Ressource `minicpp://language` beschreibt den Sprachumfang; dieselbe Beschreibung steht in den `instructions` des Handshakes. Lang laufende Aufrufe blockieren `ping` nicht und lassen sich mit `notifications/cancelled` abbrechen; Interpreter-Schleifen und -Aufrufe prüfen dafür den Interrupt-Status des Threads.
 
@@ -250,12 +226,11 @@ Jedes Ergebnis kommt als Text und strukturiert (`structuredContent`). Die Ressou
 claude mcp list                 # Claude Code findet den Server über .mcp.json im Projektwurzelverzeichnis
 ```
 
-Für andere Hosts lautet der Startbefehl `java -cp "mcp/build/install/minicpp-mcp/lib/*" de.cvogtlaender.mcp.McpServerMain --transport stdio` (mit absolutem Pfad, falls der Host nicht im Projektverzeichnis startet).
+Für andere Hosts lautet der Startbefehl `java -cp "mcp/build/install/minicpp-mcp/lib/*" de.cvogtlaender.mcp.McpServerMain` (mit absolutem Pfad, falls der Host nicht im Projektverzeichnis startet).
 
 ### Evaluation
 
-- **Korrektheit:** `./gradlew test` führt die Tests beider Module aus: Beispielprogramme mit erwarteter Ausgabe (`interpreter/src/test/resources/programs`), über 80 Fehlerfälle aller Phasen, Parser-, REPL-, Exporter- und MCP-Tests.
-- **GCC-Vergleich:** `scripts/compare-gcc.sh` führt jedes Beispielprogramm sowohl im Interpreter als auch – über `minicpp to-cpp` übersetzt – mit `g++ -std=c++17 -fwrapv` aus und vergleicht Ausgaben und Exit-Codes. Der Exporter überbrückt die bewussten Unterschiede (define-after-use, Standardwerte, `string`-Literale, `void main`, virtuelle Destruktoren für Basisklassen). Die CI (`.github/workflows/ci.yml`) führt den Vergleich bei jedem Push aus.
+- **Korrektheit:** `./gradlew test` führt 183 Tests aus: Beispielprogramme mit erwarteter Ausgabe (`interpreter/src/test/resources/programs`), 129 Fehlerfälle aller Phasen einschließlich Laufzeitfehlern, Parser- und REPL-Tests sowie die LSP-Tests. Die CI (`.github/workflows/ci.yml`) baut und testet bei jedem Push alle Module und die VS-Code-Extension.
 - **Performance/Skalierbarkeit:** `./gradlew :benchmark:jmh` (eigene JMH-Argumente: `-Pjmh="Fib -f 2"`; Ergebnisse in `benchmark/build/jmh-result.json`). Die Benchmarks messen rekursive Aufrufe, Schleifen, virtuellen Dispatch und Objektkopien mit wachsender Größe sowie Parsen und Prüfen generierter Programme mit 10–1000 Klassen.
 
 ### Hinweise für den LSP-Server
@@ -275,7 +250,7 @@ Für andere Hosts lautet der Startbefehl `java -cp "mcp/build/install/minicpp-mc
 | 5–6 | Two-Pass-Resolver, Typprüfung, Semantic Checks | C+D |
 | 7–8 | Tree-Walking-Interpreter, REPL, Objekt-Modell, vtable | C+D |
 | 9–11 | LSP4J-Server, VS Code Extension, inkrementelles Parsen | C |
-| 9–11 | MCP-Server, Ollama-Anbindung, Mocking | D |
+| 9–11 | MCP-Server (JSON-RPC über stdio), Tool-Schnittstelle | D |
 | 12 | Benchmarks, Korrektheitstests, Doku, Walk-Through | C+D |
 
 ### Aufgabenteilung
@@ -292,9 +267,7 @@ Für andere Hosts lautet der Startbefehl `java -cp "mcp/build/install/minicpp-mc
 | REPL | 50 % | 50 % |
 | LSP-Server (LSP4J, alle Features) | 100 % | – |
 | VS Code Extension | 100 % | – |
-| MCP-Server (alle Endpunkte) | – | 100 % |
-| Ollama-Anbindung + Prompt-Engineering | – | 100 % |
-| Mock-Provider für Tests | 20 % | 80 % |
-| Korrektheitstests + GCC-Vergleich | 50 % | 50 % |
+| MCP-Server (Protokoll, alle Tools) | – | 100 % |
+| Korrektheitstests | 50 % | 50 % |
 | JMH-Benchmarks | 50 % | 50 % |
 | Abschlussdokumentation + Walk-Through | 50 % | 50 % |

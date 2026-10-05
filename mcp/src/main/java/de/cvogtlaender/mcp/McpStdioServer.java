@@ -51,7 +51,7 @@ public class McpStdioServer {
   private static final String INSTRUCTIONS = """
       Tools for MiniC++, a small subset of C++. Before suggesting MiniC++ code, validate it with 'check'
       and, for complete programs, execute it with 'run'; the compiler is the ground truth for what
-      MiniC++ supports. Use 'to_cpp' to get equivalent standard C++.
+      MiniC++ supports.
       """;
 
   private static final String CODE_SCHEMA = """
@@ -77,9 +77,6 @@ public class McpStdioServer {
              "annotations": %2$s},
             {"name": "ast", "title": "Show the MiniC++ syntax tree",
              "description": "Parses MiniC++ code and returns its abstract syntax tree, or the syntax errors.",
-             "inputSchema": %1$s, "annotations": %2$s},
-            {"name": "to_cpp", "title": "Translate MiniC++ to standard C++",
-             "description": "Translates a MiniC++ program into equivalent standard C++ (e.g. to compare behavior with g++).",
              "inputSchema": %1$s, "annotations": %2$s}
           ]"""
           .formatted(CODE_SCHEMA, READ_ONLY, MiniCppTools.MAX_TIMEOUT.toSeconds(),
@@ -269,7 +266,6 @@ public class McpStdioServer {
         case "check" -> tools.check(requireString(args, "code"));
         case "run" -> tools.run(requireString(args, "code"), timeout(args));
         case "ast" -> tools.ast(requireString(args, "code"));
-        case "to_cpp" -> tools.toCpp(requireString(args, "code"));
         default -> throw new RpcError(INVALID_PARAMS, "unknown tool: " + name);
       };
     } catch (IllegalArgumentException e) {

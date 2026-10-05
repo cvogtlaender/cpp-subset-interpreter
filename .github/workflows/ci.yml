@@ -27,8 +27,3 @@ jobs:
       - name: Build VS Code extension
         working-directory: vscode
         run: npm ci && npm run compile
-
-      - name: Compare with g++
-        run: |
-          bash gradlew :interpreter:installDist
-          bash scripts/compare-gcc.sh

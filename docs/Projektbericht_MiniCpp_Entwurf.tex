@@ -1,5 +1,5 @@
 % !TeX program = pdflatex
-% Projektbericht MiniC++ -- Entwurf v0.1 (aus docs/report.py übertragen)
+% Projektbericht MiniC++ -- Entwurf v0.2 (v0.1 aus docs/report.py übertragen)
 \documentclass[11pt,a4paper,parskip=half,headsepline,toc=flat]{scrartcl}
 
 % ------------------------------------------------------------------ Grundlagen
@@ -66,14 +66,14 @@
 \pagestyle{scrheadings}
 \clearpairofpagestyles
 \ihead{\footnotesize\color{ink2}MiniC++ -- Interpreter-Ökosystem \textperiodcentered{} Technische Dokumentation}
-\ohead{\footnotesize\color{todobd}ENTWURF v0.1 \textperiodcentered{} 27.09.2026}
+\ohead{\footnotesize\color{todobd}ENTWURF v0.2 \textperiodcentered{} 05.10.2026}
 \cfoot*{\footnotesize\color{ink2}\pagemark}
 \setkomafont{pageheadfoot}{\normalfont}
 
 % ------------------------------------------------------------------ Hilfsmakros
 \newcommand{\code}[1]{\texttt{#1}}
 \newcommand{\bs}{\textbackslash}
-\newcommand{\dq}{\textquotedbl}
+\newcommand{\dquote}{\textquotedbl}
 \newcommand{\sq}{\textquotesingle}
 
 % Tabellen: Kopfzeile mit Hintergrund, Zebrastreifen
@@ -133,7 +133,7 @@
 {\color{white}\sffamily\bfseries\fontsize{24}{29}\selectfont
 Entwurf und Implementierung eines interaktiven Interpreter-Ökosystems für eine eingeschränkte C++-Teilmenge\par}
 \vspace{8pt}
-{\color[HTML]{CFE0F5}\sffamily\large mit Typprüfung, REPL, Language-Server und GenAI-Assistenz\par}
+{\color[HTML]{CFE0F5}\sffamily\large mit Typprüfung, REPL, Language-Server und MCP-Anbindung\par}
 \vspace{3.6cm}
 
 {\color{navy}\sffamily\bfseries\Large Projektbericht \textperiodcentered{} Technische Dokumentation\par}
@@ -143,8 +143,8 @@ Entwurf und Implementierung eines interaktiven Interpreter-Ökosystems für eine
 Autoren               & Clemens Vogtländer, Dennis Gorpinic \\ \arrayrulecolor{rule}\hline
 Lehrveranstaltung     & Compilerbau (CB) -- Erweiterung von Aufgabenblatt 08 \\ \hline
 Hochschule / Semester & [TODO: Hochschule, Studiengang, Semester, Betreuer/in] \\ \hline
-Repository            & cpp-subset-interpreter, Branch interpreter (Stand 27.09.2026) \\ \hline
-Dokumentstatus        & Entwurf v0.1 -- nicht zur Abgabe bestimmt \\ \hline
+Repository            & cpp-subset-interpreter, Branch interpreter (Stand 05.10.2026) \\ \hline
+Dokumentstatus        & Entwurf v0.2 -- nicht zur Abgabe bestimmt \\ \hline
 \end{tabularx}}
 \vspace{1cm}
 
@@ -154,9 +154,9 @@ Dieser Bericht dokumentiert Entwurf und Umsetzung von \emph{MiniC++}, einem form
 sowie des darum gebauten Werkzeug-Ökosystems. Kern ist ein in Java~21 implementierter Tree-Walking-Interpreter mit
 ANTLR4-Frontend, zweiphasigem Resolver, deklarationsbasierter Typprüfung mit Überladungsauflösung und einem
 Laufzeitmodell für Referenzen, Zeiger, Heap-Objekte, Slicing und virtuellen Dispatch. Darauf setzen eine REPL, ein
-Language-Server nach LSP~3.17 mit VS-Code-Extension und ein REST-basierter GenAI-Assistenzserver (Ollama) auf, dessen
-Antworten durch den echten Compiler abgesichert werden. 218 automatisierte Tests, ein differenzieller Vergleich mit
-GCC in der CI und JMH-Benchmarks bilden die Evaluationsgrundlage.
+Language-Server nach LSP~3.17 mit VS-Code-Extension und ein Server für das Model Context Protocol (MCP) auf, über den
+KI-Assistenten den echten Compiler und Interpreter als Werkzeuge nutzen. 183 automatisierte Tests und
+JMH-Benchmarks bilden die Evaluationsgrundlage.
 \end{titlepage}
 
 % ------------------------------------------------------------------ Inhaltsverzeichnis
@@ -170,7 +170,7 @@ Aufgabenblatt 08 der Lehrveranstaltung Compilerbau verlangt einen Interpreter f�
 Einfachvererbung, Referenzen und virtuellen Methoden. Das hier beschriebene Projekt nimmt diese Aufgabe als Kern und
 erweitert sie zu einem vollständigen \emph{Ökosystem}: Neben der reinen Ausführung von Programmen soll die Sprache so
 benutzbar sein, wie man es von einer produktiven Programmiersprache erwartet -- mit einer interaktiven Shell,
-Editor-Unterstützung und KI-gestützter Code-Assistenz.
+Editor-Unterstützung und einer Anbindung an KI-Assistenten.
 
 Daraus ergeben sich drei übergeordnete Ziele:
 \begin{itemize}
@@ -178,9 +178,9 @@ Daraus ergeben sich drei übergeordnete Ziele:
     entsprechende Standard-C++-Programm. Wo C++ undefiniertes Verhalten zulässt (hängende Zeiger, doppeltes
     \code{delete}), soll MiniC++ stattdessen einen präzisen Laufzeitfehler melden.
   \item \textbf{Wiederverwendbarkeit des Frontends.} Lexer, Parser, Resolver und Typprüfung sollen nicht nur dem
-    Interpreter dienen, sondern über eine schmale Fassade auch dem Language-Server und dem GenAI-Server.
+    Interpreter dienen, sondern über eine schmale Fassade auch dem Language-Server und dem MCP-Server.
   \item \textbf{Messbarkeit.} Korrektheit, Performance und Skalierbarkeit sollen mit reproduzierbaren Werkzeugen
-    (JUnit, GCC-Vergleich, JMH) belegt werden.
+    (JUnit, JMH) belegt werden.
 \end{itemize}
 
 \subsection{Projektumfang}
@@ -189,10 +189,10 @@ Das System gliedert sich in vier Säulen, die in diesem Bericht jeweils ein eige
 \begin{reporttable}
 \begin{tabular}{L{0.18}L{0.52}L{0.22}}
 \thead \hcell{Säule} & \hcell{Inhalt} & \hcell{Verantwortung} \\ \midrule
-Kern-Interpreter & Lexer, Parser, AST, Resolver, Typprüfung, Tree-Walking-Interpreter, REPL, CLI, C++-Export & gemeinsam \\
+Kern-Interpreter & Lexer, Parser, AST, Resolver, Typprüfung, Tree-Walking-Interpreter, REPL, CLI & gemeinsam \\
 LSP-Server & Language Server Protocol 3.17 über LSP4J, VS-Code-Extension & Clemens Vogtländer \\
-GenAI-Server & REST-Endpunkte für Vervollständigung, Erklärung, Refactoring und Fehlersuche mit Ollama & Dennis Gorpinic \\
-Evaluation & Unit- und Golden-File-Tests, differenzieller GCC-Vergleich, JMH-Benchmarks & gemeinsam \\ \bottomrule
+MCP-Server & Model Context Protocol über stdio: Compiler und Interpreter als Tools für KI-Assistenten & Dennis Gorpinic \\
+Evaluation & Unit- und Golden-File-Tests, JMH-Benchmarks & gemeinsam \\ \bottomrule
 \end{tabular}
 \caption{Die vier Säulen des Projekts}
 \end{reporttable}
@@ -201,7 +201,7 @@ Evaluation & Unit- und Golden-File-Tests, differenzieller GCC-Vergleich, JMH-Ben
 Kapitel~\ref{sec:sprache} definiert den Sprachumfang von MiniC++ einschließlich aller Präzisierungen, die über die
 Aufgabenstellung hinaus getroffen wurden. Kapitel~\ref{sec:architektur} beschreibt die Gesamtarchitektur und die
 Architekturentscheidungen. Kapitel~\ref{sec:kern} behandelt den Kern-Interpreter Phase für Phase,
-Kapitel~\ref{sec:lsp} den Language-Server und Kapitel~\ref{sec:genai} den GenAI-Assistenzserver.
+Kapitel~\ref{sec:lsp} den Language-Server und Kapitel~\ref{sec:mcp} den MCP-Server.
 Kapitel~\ref{sec:evaluation} fasst Teststrategie und Messergebnisse zusammen, Kapitel~\ref{sec:organisation} die
 Projektorganisation. Kapitel~\ref{sec:ausblick} diskutiert Grenzen und mögliche Weiterentwicklungen. Der Anhang
 enthält eine Kurzreferenz der Kommandozeile und die Kernregeln der Grammatik.
@@ -211,8 +211,9 @@ Wurzel des Repositorys. Das Java-Basispaket \code{de.cvogtlaender} wird in Klass
 
 % ================================================================== 2 Sprache
 \section{Die Sprache MiniC++}\label{sec:sprache}
-MiniC++ ist eine echte Teilmenge von C++17: Jedes gültige MiniC++-Programm ist -- nach einer rein mechanischen
-Übersetzung, siehe Abschnitt~\ref{sec:cppexport} -- ein gültiges C++-Programm mit identischer Ausgabe. Dieses Kapitel
+MiniC++ ist eng an C++17 angelehnt: Ein gültiges MiniC++-Programm verhält sich wie das entsprechende C++-Programm.
+Abweichungen betreffen nur wenige, bewusst gewählte Punkte -- etwa define-after-use für Funktionen und Klassen,
+Standardwerte nicht initialisierter Variablen und die eingebauten \code{print\_*}-Funktionen. Dieses Kapitel
 beschreibt den Sprachumfang aus Sicht des Programmierers.
 
 \subsection{Typen, Variablen und Werte}
@@ -226,7 +227,7 @@ Kurzform von \code{T x = T(a, b);}. Globale Variablen gibt es nicht.
 \code{int} & 32 Bit, Zweierkomplement mit Überlauf (wie \code{g++ -fwrapv}) & \code{0} \\
 \code{bool} & \code{true} / \code{false} & \code{false} \\
 \code{char} & Zeichen inkl.\ Escape-Sequenzen \code{\bs n \bs t \bs\sq{} \bs\bs{} \bs 0} u.\,a. & \code{\sq\bs 0\sq} \\
-\code{string} & Zeichenkette mit Wertsemantik & \code{\dq\dq} \\
+\code{string} & Zeichenkette mit Wertsemantik & \code{\dquote\dquote} \\
 \code{void} & nur als Rückgabetyp & -- \\
 Klasse \code{A} & Objekt mit Wertsemantik (Kopie bei Zuweisung) & parameterloser Konstruktor \\
 \code{T\&} & Referenz; Initialisierung obligatorisch, keine Neubindung & -- (Fehler) \\
@@ -339,7 +340,7 @@ offen war, wurden folgende Festlegungen getroffen:
 \subsection{Modulstruktur}
 Das Repository ist ein Gradle-Multiprojekt mit vier Java-Modulen und einem TypeScript-Projekt. Alle Werkzeuge hängen
 ausschließlich vom Modul \code{interpreter} ab; untereinander gibt es keine Abhängigkeiten. Damit bleibt der Kern frei
-von LSP-, HTTP- oder Benchmark-Bibliotheken.
+von LSP-, JSON- oder Benchmark-Bibliotheken.
 
 \begin{figure}[htbp]
 \centering
@@ -348,12 +349,12 @@ von LSP-, HTTP- oder Benchmark-Bibliotheken.
     {\textbf{interpreter}\\[-1pt]{\scriptsize\itshape\color{ink2}Grammatik \textperiodcentered{} AST \textperiodcentered{} Resolver \textperiodcentered{} Typprüfung \textperiodcentered{} Laufzeit \textperiodcentered{} REPL \textperiodcentered{} CLI}};
   \node[dbox, minimum width=3.4cm, minimum height=1cm] (lsp)   at (-5.6,2.4) {\boxtext{lsp}{LSP4J-Server (stdio)}};
   \node[dbox, minimum width=3.4cm, minimum height=1cm] (bench) at (0,2.4)    {\boxtext{benchmark}{JMH-Messungen}};
-  \node[dbox, minimum width=3.4cm, minimum height=1cm] (mcp)   at (5.6,2.4)  {\boxtext{mcp}{GenAI-REST-Server}};
+  \node[dbox, minimum width=3.4cm, minimum height=1cm] (mcp)   at (5.6,2.4)  {\boxtext{mcp}{MCP-Server (stdio)}};
   \foreach \m in {lsp,bench,mcp} \draw[arr] (\m.south) -- (core);
   \node[dbox, fill=white, minimum width=3cm, minimum height=1.5cm] (vsc) at (-6.4,0) {\boxtext{vscode}{TypeScript-Client}};
-  \node[dbox, fill=white, draw=ink2, minimum width=3cm, minimum height=1.5cm] (oll) at (6.4,0) {\boxtext{Ollama}{lokales LLM (HTTP)}};
+  \node[dbox, fill=white, draw=ink2, minimum width=3cm, minimum height=1.5cm] (host) at (6.4,0) {\boxtext{MCP-Host}{Claude Code, VS Code \dots}};
   \draw[arr, dashed] (vsc.north -| lsp.south) -- (lsp.south) node[lbl, midway, right] {startet, JSON-RPC};
-  \draw[arr, dashed] (mcp.south) -- (oll.north -| mcp.south) node[lbl, midway, right] {/api/generate};
+  \draw[arr, dashed] (host.north -| mcp.south) -- (mcp.south) node[lbl, midway, right] {startet, JSON-RPC};
   \node[dbox, fill=white, draw=rule, font=\scriptsize, minimum width=2.1cm] (e1) at (-2.3,-2.3) {ANTLR 4 Runtime};
   \node[dbox, fill=white, draw=rule, font=\scriptsize, minimum width=2.1cm] (e2) at (0,-2.3)    {JUnit 5};
   \node[dbox, fill=white, draw=rule, font=\scriptsize, minimum width=2.1cm] (e3) at (2.3,-2.3)  {Gradle 9.5 Wrapper};
@@ -365,13 +366,13 @@ von LSP-, HTTP- oder Benchmark-Bibliotheken.
 \begin{reporttable}
 \begin{tabular}{L{0.15}L{0.43}L{0.22}L{0.1}}
 \thead \hcell{Modul} & \hcell{Aufgabe} & \hcell{Quellzeilen (main / test)} & \hcell{Tests} \\ \midrule
-\code{interpreter} & Sprache, Laufzeit, REPL, CLI, C++-Export & 6\,421 / 1\,680 & 175 \\
+\code{interpreter} & Sprache, Laufzeit, REPL, CLI & 6\,047 / 1\,560 & 161 \\
 \code{lsp} & Language-Server (LSP4J 1.0.0) & 2\,295 / 590 & 22 \\
-\code{mcp} & GenAI-REST-Server (JDK-\code{HttpServer}, Gson) & 618 / 363 & 21 \\
+\code{mcp} & MCP-Server (JSON-RPC über stdio, Gson) & 901 / -- & -- \\
 \code{benchmark} & JMH-Benchmarks (JMH 1.37) & 262 / -- & -- \\
 \code{vscode} & VS-Code-Client (TypeScript) & 86 & -- \\ \bottomrule
 \end{tabular}
-\caption{Module des Repositorys (Stand 27.09.2026, inkl.\ Grammatik und Testprogramme)}
+\caption{Module des Repositorys (Stand 05.10.2026, inkl.\ Grammatik und Testprogramme)}
 \end{reporttable}
 
 \subsection{Verarbeitungspipeline}
@@ -403,7 +404,7 @@ Ausdruck typisiert vor).
     ([yshift=-3pt]s6.south west) -- ([yshift=-3pt]s6.south east)
     node[midway, below=5pt, font=\scriptsize\itshape, text=accent] {\code{MiniCpp.execute()}};
   \node[font=\scriptsize, color=ink2, anchor=west] at (-1.05,-2.55) {Nutzer der Fassade:};
-  \foreach \t/\x in {REPL/6.0, LSP-Server/8.6, GenAI-Server/11.2}
+  \foreach \t/\x in {REPL/6.0, LSP-Server/8.6, MCP-Server/11.2}
     \node[dbox, fill=white, draw=ink2, minimum width=2.3cm, font=\scriptsize] at (\x,-2.55) {\t};
 \end{tikzpicture}
 \caption{Verarbeitungspipeline und Fassade \code{MiniCpp}}
@@ -449,8 +450,9 @@ Handgeschriebener AST statt Parse-Tree & Phasen sollen auf einer stabilen, typis
   Annotationen (Bindung, Typ) speichern & zusätzliche Klasse \code{ASTBuildVisitor} (757 Zeilen) \\
 VS Code als LSP-Zielplattform & gut dokumentierte Extension-API, \code{vscode-languageclient} & Server bleibt
   editorneutral (stdio, LSP4J) \\
-Ollama als GenAI-Provider & lokal, ohne API-Schlüssel, Kosten oder Datenschutzbedenken & Provider-Schnittstelle mit
-  Mock für deterministische Tests \\ \bottomrule
+MCP statt eigener GenAI-REST-API & Das Modell des MCP-Hosts übernimmt das Denken, der Server liefert verlässliche
+  Fakten (Diagnosen, Ausgaben); kein eigener Modellbetrieb, keine API-Schlüssel, keine Prompts im Server & Server ist
+  ein reiner Werkzeuganbieter; Protokoll ohne SDK direkt mit Gson implementiert \\ \bottomrule
 \end{tabular}
 \caption{Architekturentscheidungen}
 \end{reporttable}
@@ -482,7 +484,7 @@ Der Lexer wird aus dem Lexer-Teil von \code{interpreter/src/main/antlr4/MiniCpp.
 \code{Identifier}-Regel, sodass ANTLR bei gleicher Länge das Schlüsselwort bevorzugt. Leerraum, Zeilen- und
 Blockkommentare sowie Präprozessorzeilen (\code{\#include <iostream>}) werden verworfen -- so lassen sich
 MiniC++-Programme unverändert auch mit einem C++-Compiler übersetzen. Zeichen- und Zeichenkettenliterale erlauben die
-Escape-Sequenzen \code{\bs b \bs t \bs n \bs r \bs\dq{} \bs\sq{} \bs\bs{} \bs 0}. Jedes Token trägt Zeile und Spalte;
+Escape-Sequenzen \code{\bs b \bs t \bs n \bs r \bs\dquote{} \bs\sq{} \bs\bs{} \bs 0}. Jedes Token trägt Zeile und Spalte;
 diese Positionen wandern über den AST bis in die Diagnosen.
 
 \subsection{Syntaxanalyse}
@@ -693,6 +695,13 @@ Stack aus. Ein Zähler begrenzt die Aufruftiefe auf \code{MAX\_CALL\_DEPTH = 100
 \code{StackOverflowError}s (etwa durch extrem tief verschachtelte Ausdrücke) werden in einen regulären Laufzeitfehler
 übersetzt.
 
+\subsubsection*{Abbruch von außen}
+Ein Programm kann nur durch Schleifen oder Aufrufe unbegrenzt laufen. Genau dort -- zu Beginn jeder
+\code{while}-Iteration und jedes Funktions- bzw.\ Methodenaufrufs -- prüft der Interpreter mit
+\code{checkInterrupted} den Interrupt-Status seines Threads und bricht gegebenenfalls mit dem Laufzeitfehler
+\code{execution interrupted} ab. Aufrufer wie der MCP-Server (Abschnitt~\ref{sec:mcp}) setzen damit Zeitlimits und
+Abbrüche um, ohne den Thread gewaltsam beenden zu müssen; der Aufwand pro Prüfung ist ein einzelner Flag-Zugriff.
+
 \subsection{REPL}
 Die REPL (\code{repl.Repl}) lädt optional eine Datei, führt deren \code{main} im \emph{Sitzungs-Scope} aus und hält
 diesen offen, sodass die lokalen Variablen von \code{main} anschließend zur Verfügung stehen. Jede Eingabe wird mit
@@ -717,21 +726,9 @@ Neue Variablen landen im Sitzungs-Scope, neue Funktionen und Klassen im globalen
 Variablen kennt, sind Sitzungsvariablen in Funktionen nicht sichtbar. Befehle: \code{:vars}, \code{:functions},
 \code{:classes}, \code{:load <datei>}, \code{:reset}, \code{:cancel}, \code{:help}, \code{:quit}.
 
-\subsection{Kommandozeile und C++-Export}\label{sec:cppexport}
-Die Klasse \code{Main} stellt die Unterbefehle \code{run}, \code{check}, \code{repl}, \code{ast} und \code{to-cpp}
-bereit (Anhang~\ref{app:build}). Der Exit-Code von \code{run} ist der Rückgabewert von \code{main}, bei Fehlern 1.
-
-Der \code{CppExporter} übersetzt ein geprüftes MiniC++-Programm in Standard-C++17 mit identischem Verhalten. Er ist
-die Grundlage des differenziellen Tests gegen GCC (Abschnitt~\ref{sec:gcc}) und überbrückt die Stellen, an denen
-MiniC++ bewusst von C++ abweicht:
-\begin{itemize}
-  \item define-after-use: Klassen werden vorwärts deklariert und nach Abhängigkeiten sortiert, Funktionen erhalten
-    Prototypen, Methoden werden nach allen Klassen außerhalb definiert;
-  \item Standardwerte für nicht initialisierte Variablen und Felder, \code{new T} wird zu \code{new T()};
-  \item Zeichenkettenliterale erhalten den Typ \code{string}, die \code{print\_*}-Funktionen werden in einem Präludium
-    definiert, \code{void main()} wird gekapselt;
-  \item Basisklassen erhalten einen virtuellen Destruktor, damit \code{delete} über einen Basiszeiger definiert ist.
-\end{itemize}
+\subsection{Kommandozeile}
+Die Klasse \code{Main} stellt die Unterbefehle \code{run}, \code{check}, \code{repl} und \code{ast} bereit
+(Anhang~\ref{app:build}). Der Exit-Code von \code{run} ist der Rückgabewert von \code{main}, bei Fehlern 1.
 
 % ================================================================== 5 LSP
 \section{Language-Server}\label{sec:lsp}
@@ -859,84 +856,98 @@ Server über \code{vscode-languageclient}. Der Server wird in folgender Reihenfo
 Startskripte im Paket ihr Ausführungsrecht verlieren), zuletzt der im Repository gebaute Server. Das Java-Programm
 lässt sich mit \code{minicpp.java.path} festlegen, \code{minicpp.trace.server} protokolliert den JSON-RPC-Verkehr.
 
-% ================================================================== 6 GenAI
-\section{GenAI-Assistenzserver}\label{sec:genai}
-Der Assistenzserver (Modul \code{mcp}) stellt KI-gestützte Code-Assistenz für MiniC++ als HTTP/JSON-Dienst bereit. Er
-nutzt ein lokal laufendes Sprachmodell über Ollama und verbindet dessen Antworten mit dem echten MiniC++-Compiler.
+% ================================================================== 6 MCP
+\section{MCP-Server}\label{sec:mcp}
+Der MCP-Server (Modul \code{mcp}) macht MiniC++ für KI-Assistenten nutzbar. Er implementiert das
+\emph{Model Context Protocol} (MCP), über das Hosts wie Claude Code, Claude Desktop oder VS Code externe Werkzeuge an
+ihr Sprachmodell anbinden. Sprachmodelle kennen C++, aber nicht die Grenzen von MiniC++; ohne Hilfe schlagen sie
+bevorzugt idiomatisches C++ vor, das MiniC++ nicht akzeptiert (Arrays, \code{++}, \code{this} \dots). Statt diese
+Lücke mit einem eigenen Modell und Prompts zu schließen, stellt der Server den echten Compiler und Interpreter als
+\emph{Tools} bereit: Das Modell des Hosts schreibt Code, prüft ihn mit \code{check}, führt ihn mit \code{run} aus und
+korrigiert ihn anhand der präzisen Diagnosen. Der Compiler ist damit die verbindliche Instanz dafür, was MiniC++
+unterstützt.
 
-\begin{todo}
-Das Modul heißt \code{mcp}, implementiert aber eine REST-Schnittstelle und nicht das \emph{Model Context Protocol}
-(JSON-RPC mit Tools/Resources). Für die Endfassung klären: entweder Begriff im Bericht präzisieren
-(\enquote{GenAI-REST-Server}) oder eine MCP-Schnittstelle ergänzen.
-\end{todo}
+\begin{hinweis}
+In einer früheren Projektphase stellte das Modul eine REST-API mit eigenem Sprachmodell (Ollama) für Vervollständigung,
+Erklärung, Refactoring und Fehlersuche bereit. Diese wurde zugunsten des MCP-Servers entfernt: MCP-Hosts bringen
+leistungsfähigere Modelle mit, und der Server muss weder Modelle betreiben noch Antworten parsen.
+\end{hinweis}
 
-\subsection{Endpunkte}
+\subsection{Protokoll und Transport}
+Der Host startet den Server als Kindprozess (Einstiegspunkt \code{McpServerMain}) und kommuniziert mit ihm über
+JSON-RPC~2.0, eine Nachricht pro Zeile auf stdin/stdout. \code{McpStdioServer} implementiert das Protokoll direkt mit
+Gson, ohne MCP-SDK, und unterstützt die Protokollversionen 2024-11-05 bis 2025-11-25: Beim \code{initialize}
+übernimmt er die vom Client gewünschte Version, sofern er sie kennt, und antwortet sonst mit der neuesten.
+
 \begin{reporttable}
-\begin{tabular}{L{0.19}L{0.36}L{0.37}}
-\thead \hcell{Endpunkt} & \hcell{Anfrage (JSON)} & \hcell{Antwort} \\ \midrule
-\code{POST /complete} & \code{code}, \code{line} (1-basiert), \code{column} (0-basiert) & \code{completion}:
-  einzufügender Text \\
-\code{POST /explain} & \code{code} & \code{explanation} \\
-\code{POST /refactor} & \code{code}, optional \code{instruction} & \code{code}, \code{rationale}, \code{compiles},
-  \code{diagnostics} \\
-\code{POST /detect-bugs} & \code{code} & \code{compilerDiagnostics}, \code{findings[\{line, description\}]},
-  \code{analysis} \\
-\code{GET /health} & -- & Status, Provider, Modell, Erreichbarkeit \\ \bottomrule
+\begin{tabular}{L{0.3}L{0.62}}
+\thead \hcell{Methode} & \hcell{Verhalten} \\ \midrule
+\code{initialize} & Versionsaushandlung, Capabilities (\code{tools}, \code{resources}), Serverinfo und
+  \code{instructions} mit der Sprachbeschreibung \\
+\code{ping} & leere Antwort \\
+\code{tools/list}, \code{tools/call} & die drei Tools aus Tabelle~\ref{tab:mcptools} \\
+\code{resources/list}, \code{resources/read} & Ressource \code{minicpp://language}: Sprachumfang inkl.\ Negativliste \\
+\code{notifications/cancelled} & bricht einen laufenden Tool-Aufruf ab \\ \bottomrule
 \end{tabular}
-\caption{Endpunkte des Assistenzservers}
+\caption{Unterstützte MCP-Methoden}
 \end{reporttable}
 
-Der Server basiert auf dem im JDK enthaltenen \code{com.sun.net.httpserver.HttpServer} mit einem Pool von vier
-Threads und Gson für JSON; weitere Abhängigkeiten gibt es nicht. Er bindet standardmäßig nur an
-\code{127.0.0.1:8080}. Fehler werden einheitlich als \code{\{\dq error\dq: \dots\}} gemeldet: HTTP 400 bei
-ungültiger Anfrage, 404 bei unbekanntem Pfad, 405 bei falscher Methode, 413 bei Anfragen über 1\,MiB und 502, wenn
-das Modell nicht erreichbar ist.
+Fehler auf Protokollebene (ungültiges JSON, unbekannte Methode, fehlender Tool-Name) werden als JSON-RPC-Fehler mit
+den Standardcodes gemeldet. Ungültige Tool-\emph{Argumente} dagegen liefern ein reguläres Ergebnis mit
+\code{isError: true} -- so sieht das Modell die Meldung und kann den Aufruf korrigieren.
 
-\subsection{Provider-Abstraktion}
-Die Schnittstelle \code{GenAiProvider} kapselt das Sprachmodell (\code{generate(system, prompt)},
-\code{isAvailable()}). Der \code{OllamaProvider} ruft \code{/api/generate} ohne Streaming und mit Temperatur 0,2 auf
--- Code-Assistenz soll fokussiert statt kreativ sein. Modell (Standard \code{codellama}), URL und Timeout (120\,s)
-sind per Kommandozeile oder Umgebungsvariable konfigurierbar. Der \code{MockProvider} implementiert dieselbe
-Schnittstelle deterministisch; er ermöglicht Tests des gesamten Servers ohne laufendes Modell und einen Betrieb mit
-\code{--provider mock}.
+\subsection{Tools}
+\begin{reporttable}
+\begin{tabular}{L{0.1}L{0.24}L{0.58}}
+\thead \hcell{Tool} & \hcell{Argumente} & \hcell{Ergebnis} \\ \midrule
+\code{check} & \code{code} & Diagnosen aus Parser, Resolver und Typprüfung; \code{main} ist nur erforderlich,
+  wenn der Code eines definiert, sodass auch einzelne Klassen oder Funktionen geprüft werden können \\
+\code{run} & \code{code}, optional \code{timeoutSeconds} (1--60, Standard 10) & Ausgabe (max.\ 100\,kB),
+  Exit-Code, Compile- oder Laufzeitfehler, Kennzeichen für abgeschnittene Ausgabe und Zeitüberschreitung \\
+\code{ast} & \code{code} & abstrakter Syntaxbaum oder Syntaxfehler \\ \bottomrule
+\end{tabular}
+\caption{Tools des MCP-Servers}\label{tab:mcptools}
+\end{reporttable}
 
-\subsection{Prompt-Design}
-Sprachmodelle kennen C++, aber nicht MiniC++. Jeder System-Prompt enthält deshalb eine kompakte Sprachbeschreibung,
-die neben den Features ausdrücklich aufzählt, was fehlt (Arrays, Casts, \code{++}, \code{+=}, \code{this},
-Standardbibliothek \dots). Ohne diese Negativliste schlagen Modelle bevorzugt idiomatisches C++ vor, das MiniC++
-nicht akzeptiert. Die endpunktspezifischen Anweisungen erzwingen ein maschinenlesbares Antwortformat:
-\begin{itemize}
-  \item \code{/complete} markiert die Cursorposition mit \code{<CURSOR>} und verlangt ausschließlich den
-    einzufügenden Text; umschließende Markdown-Codeblöcke werden trotzdem defensiv entfernt.
-  \item \code{/refactor} verlangt den vollständigen Code in genau einem \code{\textasciigrave\textasciigrave\textasciigrave cpp}-Block, gefolgt von
-    einer Zeile \code{Rationale:}.
-  \item \code{/detect-bugs} übergibt den Code mit Zeilennummern und verlangt Befunde im Format
-    \code{LINE <n>: <text>} oder \code{NONE}; ein regulärer Ausdruck überführt sie in strukturierte \code{findings}.
-\end{itemize}
+Alle Tools sind als lesend und idempotent annotiert (\code{readOnlyHint}, \code{idempotentHint}), damit Hosts sie
+ohne Rückfrage ausführen können. Jedes Ergebnis wird doppelt geliefert: als Text für das Modell und als
+\code{structuredContent} für Clients, die die Felder maschinell auswerten.
 
-\subsection{Absicherung durch den Compiler}
-Das wichtigste Qualitätsmerkmal des Servers ist, dass er Modellantworten nicht ungeprüft weitergibt:
-\begin{itemize}
-  \item \textbf{Grounding:} Für \code{/explain} und \code{/detect-bugs} werden die Diagnosen des MiniC++-Compilers an
-    den Prompt angehängt. Das Modell muss Syntax- und Typfehler nicht raten, sondern kann sie als gesichert
-    behandeln.
-  \item \textbf{Verifikation:} Jeder Refactoring-Vorschlag wird vor der Rückgabe kompiliert; das Feld
-    \code{compiles} und die Diagnosen zeigen dem Aufrufer, ob der Vorschlag gültiges MiniC++ ist.
-  \item \textbf{Strukturierte Ergänzung:} \code{/detect-bugs} liefert die Compilerdiagnosen zusätzlich getrennt von
-    den Modellbefunden, sodass ein Client sichere und heuristische Befunde unterschiedlich darstellen kann.
-\end{itemize}
-Code ohne \code{main} wird dabei nur als Deklarationssammlung geprüft, damit auch einzelne Funktionen oder Klassen
-analysiert werden können.
+\subsection{Nebenläufigkeit, Zeitlimits und Abbruch}
+Weil \code{run} beliebig lange dauern kann, laufen Tool-Aufrufe auf Worker-Threads; der Lese-Thread bleibt frei, sodass
+\code{ping} und Abbruchnachrichten jederzeit beantwortet werden. Laufende Aufrufe sind nach Request-ID registriert;
+\code{notifications/cancelled} unterbricht den zugehörigen Thread, und die Antwort entfällt. \code{MiniCppTools}
+führt das Programm wiederum auf einem eigenen Thread aus und wartet höchstens \code{timeoutSeconds}. Bei
+Überschreitung wird dieser Thread unterbrochen; der Interpreter bemerkt das an der nächsten Schleifeniteration oder
+dem nächsten Aufruf (Abschnitt~\ref{sec:laufzeit}). Das Ergebnis enthält dann die bis dahin erzeugte Ausgabe und den
+Hinweis auf eine mögliche Endlosschleife. Eine \code{BoundedOutput}-Klasse begrenzt die Ausgabe auf 100\,kB, damit
+ein Programm in einer Ausgabeschleife den Kontext des Modells nicht überflutet.
+
+\begin{lstlisting}[caption={Ein \code{run}-Aufruf auf Protokollebene (gekürzt)}]
+-> {"jsonrpc":"2.0","id":3,"method":"tools/call","params":{"name":"run",
+     "arguments":{"code":"int main() { print_int(6*7); return 3; }"}}}
+<- {"jsonrpc":"2.0","id":3,"result":{
+     "content":[{"type":"text","text":"output:\n42\nexit code 3"}],
+     "structuredContent":{"compiled":true,"exitCode":3,"output":"42\n",
+                          "outputTruncated":false,"timedOut":false,"diagnostics":[]},
+     "isError":false}}
+\end{lstlisting}
+
+\subsection{Einbindung in Hosts}
+Die Datei \code{.mcp.json} im Projektwurzelverzeichnis registriert den Server für Claude Code; nach
+\code{./gradlew :mcp:installDist} steht er beim Öffnen des Projekts automatisch zur Verfügung. Andere Hosts starten
+ihn mit \code{java -cp \dquote mcp/build/install/minicpp-mcp/lib/*\dquote{} de.cvogtlaender.mcp.McpServerMain}.
 
 \begin{todo}
-Qualitative Evaluation der Modellantworten ergänzen (z.\,B. Anteil kompilierender Refactorings für \code{codellama}
-vs.\ \code{deepseek-coder} auf den Testprogrammen, typische Fehlermuster, Antwortzeiten).
+Automatisierte Tests für den MCP-Server ergänzen (Protokoll, Tools, Zeitlimit, Abbruch) und eine qualitative
+Evaluation durchführen: z.\,B. Anteil der Aufgaben, bei denen ein Modell mit bzw.\ ohne Tools gültiges MiniC++
+erzeugt, und Zahl der benötigten \code{check}-Iterationen.
 \end{todo}
 
 % ================================================================== 7 Evaluation
 \section{Qualitätssicherung und Evaluation}\label{sec:evaluation}
 \subsection{Teststrategie}
-Alle 218 automatisierten Tests laufen mit \code{./gradlew build} bzw.\ \code{./gradlew test} und waren zum
+Alle 183 automatisierten Tests laufen mit \code{./gradlew build} bzw.\ \code{./gradlew test} und waren zum
 Redaktionsschluss grün. Sie gliedern sich wie folgt:
 
 \begin{reporttable}
@@ -944,42 +955,26 @@ Redaktionsschluss grün. Sie gliedern sich wie folgt:
 \thead \hcell{Testklasse} & \hcell{Modul} & \hcell{Tests} & \hcell{Gegenstand} \\ \midrule
 \code{ErrorTest} & interpreter & 129 & ungültige Programme: erwartete Phase und Meldung des ersten Fehlers, inkl.\
   Laufzeitfehler \\
-\code{CppExporterTest} & interpreter & 14 & Übersetzung nach C++ \\
 \code{ReplTest} & interpreter & 13 & Sitzungen, Fortsetzungszeilen, Rücksetzen bei Fehlern, Befehle \\
 \code{ParserTest} & interpreter & 10 & Präzedenz, Literale und Escapes, Kurzformen, Referenztypen, Klassen \\
 \code{ProgramTest} & interpreter & 9 & Golden-File-Tests der Beispielprogramme \\
 \code{FeaturesTest} & lsp & 19 & Hover, Completion, Navigation, Rename, Formatierung, Quick Fixes \\
 \code{DiagnosticsTest} & lsp & 3 & Diagnosen Ende-zu-Ende mit Client-Stub: Positionen, Syntaxfehler, Löschen beim
-  Schließen \\
-\code{AssistantServiceTest} & mcp & 9 & Prompts, Antwortverarbeitung, Compiler-Absicherung (Mock) \\
-\code{McpServerTest} & mcp & 8 & HTTP-Ebene, Fehlercodes \\
-\code{OllamaProviderTest} & mcp & 4 & Ollama-Protokoll gegen lokalen Test-Server \\ \midrule
-\textbf{Summe} & & \textbf{218} & \\ \bottomrule
+  Schließen \\ \midrule
+\textbf{Summe} & & \textbf{183} & \\ \bottomrule
 \end{tabular}
-\caption{Automatisierte Tests (Stand 27.09.2026)}
+\caption{Automatisierte Tests (Stand 05.10.2026)}
 \end{reporttable}
 
 \subsubsection*{Golden-File-Tests}
 Das Verzeichnis \code{interpreter/src/test/resources/programs} enthält neun thematische Programme (Grundlagen,
 Kontrollfluss, Funktionen, Klassen, Vererbung, Zeiger, Scoping, \code{void main}, Exit-Codes), jeweils mit einer
 \code{.expected}-Datei der erwarteten Ausgabe. Ein Kommentar \code{// expect-exit: N} legt einen abweichenden
-Exit-Code fest. Dieselben Dateien dienen auch dem GCC-Vergleich.
-
-\subsection{Differenzieller Vergleich mit GCC}\label{sec:gcc}
-Die stärkste Korrektheitsaussage liefert der Vergleich mit einem echten C++-Compiler. Das Skript
-\code{scripts/compare-gcc.sh} führt jedes Testprogramm (1) im Interpreter aus, (2) übersetzt es mit
-\code{minicpp to-cpp} nach C++, kompiliert es mit \code{g++ -std=c++17 -fwrapv -O1} und führt es aus, und vergleicht
-(3) beide Ausgaben und Exit-Codes mit der erwarteten Ausgabe. \code{-fwrapv} stellt sicher, dass GCC
-Ganzzahlüberlauf ebenfalls als Zweierkomplement behandelt.
+Exit-Code fest. Die erwarteten Ausgaben entsprechen dem Verhalten des äquivalenten C++-Programms.
 
 \subsubsection*{Continuous Integration}
 Die GitHub-Actions-Pipeline (\code{.github/workflows/ci.yml}) läuft bei jedem Push und Pull-Request auf
-\code{ubuntu-latest}: Build und Tests aller Module mit Temurin 21, Build der VS-Code-Extension mit Node 22 und
-abschließend der GCC-Vergleich.
-
-\begin{todo}
-Aktuelles Ergebnis des GCC-Vergleichs aus der CI (Anzahl PASS/FAIL) eintragen; lokal ist kein g++ installiert.
-\end{todo}
+\code{ubuntu-latest}: Build und Tests aller Module mit Temurin 21 sowie Build der VS-Code-Extension mit Node 22.
 
 \subsection{Performance und Skalierbarkeit}\label{sec:perf}
 Die Benchmarks im Modul \code{benchmark} verwenden JMH und messen die mittlere Laufzeit.
@@ -1065,13 +1060,13 @@ Messumgebung: JMH mit 1 Fork, $2 \times 1$\,s Warm-up und $3 \times 1$\,s Messun
 
 \begin{todo}
 Die Werte stammen aus einem kurzen Vorab-Lauf mit großer Streuung. Für die Endfassung mit den Standardeinstellungen
-oder mehr Forks messen (\code{./gradlew :benchmark:jmh -Pjmh=\dq -f 3 -wi 5 -i 10\dq}) und ggf.\ einen Vergleich
+oder mehr Forks messen (\code{./gradlew :benchmark:jmh -Pjmh=\dquote -f 3 -wi 5 -i 10\dquote}) und ggf.\ einen Vergleich
 mit \code{g++ -O0} ergänzen.
 \end{todo}
 
 \subsection{Bewertung}
-Die Tests decken jede Phase einzeln sowie das Zusammenspiel über Golden Files ab; der GCC-Vergleich belegt, dass die
-Semantik nicht nur mit den eigenen Erwartungen, sondern mit der Referenzimplementierung übereinstimmt. Besonders
+Die Tests decken jede Phase einzeln sowie das Zusammenspiel über Golden Files ab. Nicht automatisiert getestet ist
+bislang der MCP-Server; er wurde manuell über stdio und mit Claude Code als Host erprobt. Besonders
 wertvoll war die Kombination aus \code{ErrorTest} und Laufzeit-Lebensdauerprüfung: Jeder Fall von undefiniertem
 Verhalten in C++ ist als eigener Testfall mit erwarteter Meldung festgehalten. Die Performance ist für den
 Einsatzzweck -- Lehre, interaktive Nutzung, Editor-Analyse -- ausreichend: typische Beispielprogramme laufen im
@@ -1082,7 +1077,7 @@ einstelligen Millisekundenbereich, und die statische Analyse einer Datei mit 100
 \section{Projektorganisation}\label{sec:organisation}
 \subsection{Arbeitsplan}
 Das Projekt war auf zwölf Wochen angelegt. Die Kernphasen wurden gemeinsam bearbeitet, die Erweiterungen (LSP und
-GenAI) parallel von jeweils einem Teammitglied.
+MCP) parallel von jeweils einem Teammitglied.
 
 \begin{reporttable}
 \begin{tabular}{L{0.1}L{0.68}L{0.14}}
@@ -1092,7 +1087,7 @@ GenAI) parallel von jeweils einem Teammitglied.
 5--6 & Two-Pass-Resolver, Typprüfung, semantische Prüfungen & C + D \\
 7--8 & Tree-Walking-Interpreter, REPL, Objektmodell, vtables & C + D \\
 9--11 & LSP4J-Server, VS-Code-Extension & C \\
-9--11 & GenAI-Server, Ollama-Anbindung, Mock-Provider & D \\
+9--11 & MCP-Server (JSON-RPC über stdio), Tool-Schnittstelle & D \\
 12 & Benchmarks, Korrektheitstests, Dokumentation, Walk-Through & C + D \\ \bottomrule
 \end{tabular}
 \caption{Arbeitsplan (C = Clemens Vogtländer, D = Dennis Gorpinic)}
@@ -1106,9 +1101,8 @@ Grammatik (Lexer und Parser), AST-Hierarchie & 50\,\% & 50\,\% \\
 Resolver, Typprüfung und Überladungsauflösung & 50\,\% & 50\,\% \\
 Interpreter, Objektmodell (vtable, Slicing), REPL & 50\,\% & 50\,\% \\
 LSP-Server und VS-Code-Extension & 100\,\% & -- \\
-GenAI-Server, Ollama-Anbindung, Prompt-Engineering & -- & 100\,\% \\
-Mock-Provider für Tests & 20\,\% & 80\,\% \\
-Korrektheitstests, GCC-Vergleich, JMH-Benchmarks & 50\,\% & 50\,\% \\
+MCP-Server (Protokoll, alle Tools) & -- & 100\,\% \\
+Korrektheitstests, JMH-Benchmarks & 50\,\% & 50\,\% \\
 Abschlussdokumentation und Walk-Through & 50\,\% & 50\,\% \\ \bottomrule
 \end{tabular}
 \caption{Aufgabenteilung}
@@ -1116,11 +1110,12 @@ Abschlussdokumentation und Walk-Through & 50\,\% & 50\,\% \\ \bottomrule
 
 Entwickelt wurde in einem gemeinsamen Git-Repository; die Implementierung des Interpreters liegt auf dem Branch
 \code{interpreter}. Die CI prüft jeden Push, sodass Regressionen im gemeinsam genutzten Kern früh sichtbar werden --
-wichtig, weil LSP- und GenAI-Server direkt von dessen AST-Annotationen abhängen.
+wichtig, weil LSP- und MCP-Server direkt von dessen Fassade und AST-Annotationen abhängen.
 
 \begin{todo}
 Tatsächlichen Verlauf gegenüber dem Plan reflektieren: Was hat länger gedauert (z.\,B. Zeiger-Semantik, die
-nachträglich in den Umfang aufgenommen wurde), welche Entscheidungen wurden revidiert, was würde das Team anders
+nachträglich in den Umfang aufgenommen wurde), welche Entscheidungen wurden revidiert (z.\,B. Ersatz der
+GenAI-REST-API mit Ollama durch den MCP-Server, Wegfall von C++-Export und GCC-Vergleich), was würde das Team anders
 machen?
 \end{todo}
 
@@ -1141,6 +1136,11 @@ machen?
     für rechenintensive Programme wäre er um Größenordnungen langsamer als kompilierter Code.
   \item \textbf{Ein Dokument pro Programm.} MiniC++ kennt keine Module; der Language-Server behandelt jede Datei
     unabhängig.
+  \item \textbf{Keine automatische Prüfung gegen C++.} Dass sich MiniC++-Programme wie ihr C++-Gegenstück verhalten,
+    ist durch die erwarteten Ausgaben der Golden-File-Tests festgehalten, wird aber nicht automatisch mit einem
+    C++-Compiler abgeglichen.
+  \item \textbf{AST-Ausgabe.} Die Textdarstellung des AST (\code{minicpp ast}, MCP-Tool \code{ast}) ist an JSON
+    angelehnt, aber kein gültiges JSON und damit nur für Menschen und Sprachmodelle, nicht für Programme lesbar.
 \end{itemize}
 
 \subsection{Mögliche Weiterentwicklungen}
@@ -1153,17 +1153,19 @@ machen?
     häufigsten vermissten Konstrukte und ließen sich in die bestehende Architektur einfügen.
   \item \textbf{Debug Adapter Protocol:} Da der Interpreter jeden Knoten mit Quellbereich ausführt, liegt ein
     Debugger für VS Code (Breakpoints, Variablenansicht) nahe.
-  \item \textbf{MCP-Anbindung:} Die Assistenzfunktionen zusätzlich als Model-Context-Protocol-Tools bereitstellen,
-    sodass KI-Agenten MiniC++-Code prüfen und ausführen können.
+  \item \textbf{Weitere MCP-Tools:} Die Analysen des Language-Servers (Hover, Navigation, Formatierung, Quick Fixes)
+    ließen sich ebenfalls als Tools anbieten, sodass ein Modell Code nicht nur prüfen, sondern gezielt reparieren
+    und umformatieren kann.
 \end{itemize}
 
 \subsection{Fazit}
 Das Projekt zeigt, dass eine klar abgegrenzte Sprache mit einem sauber geschichteten Frontend eine tragfähige
 Grundlage für ein ganzes Werkzeug-Ökosystem ist. Die Entscheidung, alle Analyseergebnisse als Annotationen am AST und
 alle Probleme als positionsgenaue \code{Diagnostic}s zu modellieren, hat sich ausgezahlt: Interpreter, REPL,
-Language-Server und GenAI-Server nutzen dieselbe Pipeline und liefern konsistente Ergebnisse. Die Korrektheit
-gegenüber C++ ist durch den differenziellen GCC-Vergleich belegt, und die Laufzeitprüfungen machen undefiniertes
-Verhalten, das in C++ schwer zu finden ist, für Lernende sichtbar.
+Language-Server und MCP-Server nutzen dieselbe Pipeline und liefern konsistente Ergebnisse. Der MCP-Server zeigt
+zudem, dass ein präziser Compiler für KI-Assistenten wertvoller ist als ein eigenes Sprachmodell: Er macht den
+Sprachumfang überprüfbar, statt ihn erraten zu lassen. Die Laufzeitprüfungen machen undefiniertes Verhalten, das in
+C++ schwer zu finden ist, für Lernende sichtbar.
 
 \begin{todo}
 Fazit nach Abschluss der Evaluation überarbeiten; ggf.\ Abschnitt zu Lessons Learned ergänzen.
@@ -1179,7 +1181,7 @@ Voraussetzung ist ein JDK 21 oder neuer; für die Extension zusätzlich Node.js.
 ./gradlew build                          # alle Module bauen und testen
 ./gradlew :interpreter:installDist       # -> interpreter/build/install/minicpp/bin/minicpp
 ./gradlew :lsp:installDist               # -> lsp/build/install/minicpp-lsp/bin/minicpp-lsp
-./gradlew :mcp:run --args="--provider mock"     # GenAI-Server ohne Ollama auf :8080
+./gradlew :mcp:installDist               # -> mcp/build/install/minicpp-mcp (über .mcp.json eingebunden)
 ./gradlew :benchmark:jmh                 # Benchmarks, Ergebnis in benchmark/build/jmh-result.json
 cd vscode && npm install && npm run package      # -> minicpp-1.0.0.vsix
 \end{lstlisting}
@@ -1190,24 +1192,16 @@ cd vscode && npm install && npm run package      # -> minicpp-1.0.0.vsix
 \code{minicpp run datei.cpp} & Programm ausführen; Exit-Code = Rückgabewert von \code{main} \\
 \code{minicpp check datei.cpp} & nur Syntax-, Namens- und Typprüfung \\
 \code{minicpp repl [datei.cpp]} & REPL, optional mit vorher geladener Datei \\
-\code{minicpp ast datei.cpp} & AST ausgeben \\
-\code{minicpp to-cpp datei.cpp} & nach Standard-C++17 übersetzen \\ \bottomrule
+\code{minicpp ast datei.cpp} & AST ausgeben \\ \bottomrule
 \end{tabular}
 \caption{Unterbefehle der Kommandozeile}
 \end{reporttable}
 
-\begin{reporttable}
-\begin{tabular}{L{0.28}L{0.32}L{0.32}}
-\thead \hcell{Option} & \hcell{Umgebungsvariable} & \hcell{Standard} \\ \midrule
-\code{--host} & \code{MCP\_HOST} & \code{127.0.0.1} \\
-\code{--port} & \code{MCP\_PORT} & \code{8080} \\
-\code{--provider} & \code{MCP\_PROVIDER} & \code{ollama} (alternativ \code{mock}) \\
-\code{--ollama-url} & \code{OLLAMA\_URL} & lokale Ollama-Instanz \\
-\code{--model} & \code{OLLAMA\_MODEL} & \code{codellama} \\
-\code{--timeout} & \code{OLLAMA\_TIMEOUT} & 120\,s \\ \bottomrule
-\end{tabular}
-\caption{Konfiguration des GenAI-Servers}
-\end{reporttable}
+\begin{lstlisting}[caption={Registrierung des MCP-Servers in \code{.mcp.json}}]
+{ "mcpServers": { "minicpp": {
+    "type": "stdio", "command": "java",
+    "args": ["-cp", "mcp/build/install/minicpp-mcp/lib/*", "de.cvogtlaender.mcp.McpServerMain"] } } }
+\end{lstlisting}
 
 \section{Grammatik: Deklarationen und Anweisungen}
 \begin{lstlisting}[caption={Parser-Regeln für Deklarationen und Anweisungen (vollständig in \code{MiniCpp.g4})}]
@@ -1241,6 +1235,7 @@ ADR & Architecture Decision Record \\
 AST & Abstract Syntax Tree, abstrakter Syntaxbaum \\
 CI & Continuous Integration \\
 JMH & Java Microbenchmark Harness \\
+JSON-RPC & JSON Remote Procedure Call \\
 LSP & Language Server Protocol \\
 MCP & Model Context Protocol \\
 REPL & Read-Eval-Print-Loop \\

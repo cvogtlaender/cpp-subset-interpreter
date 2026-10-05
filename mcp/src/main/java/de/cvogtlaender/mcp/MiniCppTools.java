@@ -16,7 +16,6 @@ import java.util.concurrent.TimeoutException;
 
 import de.cvogtlaender.interpreter.MiniCpp;
 import de.cvogtlaender.interpreter.ast.Program;
-import de.cvogtlaender.interpreter.cpp.CppExporter;
 import de.cvogtlaender.interpreter.diagnostic.Diagnostic;
 
 /**
@@ -43,7 +42,10 @@ public class MiniCppTools {
     }
   }
 
-  /** {@code exitCode} is null if the program did not compile or hit the time limit. */
+  /**
+   * {@code exitCode} is null if the program did not compile or hit the time
+   * limit.
+   */
   public record RunResult(boolean compiled, Integer exitCode, String output, boolean outputTruncated,
       boolean timedOut, List<Diagnostic> diagnostics) implements Result {
     @Override
@@ -73,20 +75,15 @@ public class MiniCppTools {
     }
   }
 
-  public record CppResult(String cpp, List<Diagnostic> diagnostics) implements Result {
-    @Override
-    public String text() {
-      return cpp != null ? cpp : "compilation failed:\n" + formatAll(diagnostics);
-    }
-  }
-
   private final ExecutorService runner = Executors.newCachedThreadPool(task -> {
     Thread thread = new Thread(task, "minicpp-run");
     thread.setDaemon(true);
     return thread;
   });
 
-  /** Compiler diagnostics; {@code main} is only required if the code defines one. */
+  /**
+   * Compiler diagnostics; {@code main} is only required if the code defines one.
+   */
   public CheckResult check(String code) {
     List<Diagnostic> diagnostics = AssistantService.check(code);
     return new CheckResult(diagnostics.isEmpty(), diagnostics);
@@ -111,7 +108,8 @@ public class MiniCppTools {
       return new RunResult(true, result.exitCode(), output.text(), output.truncated(), false,
           result.diagnostics());
     } catch (TimeoutException e) {
-      // interrupts the interpreter thread, which stops at its next loop iteration or call
+      // interrupts the interpreter thread, which stops at its next loop iteration or
+      // call
       execution.cancel(true);
       out.flush();
       Diagnostic stopped = new Diagnostic(Diagnostic.Phase.RUNTIME, 0, 0, 0, 0,
@@ -136,14 +134,6 @@ public class MiniCppTools {
         : new AstResult(parsed.tree().toStringTree(), List.of());
   }
 
-  /** Translates a program to standard C++, e.g. for comparing with g++. */
-  public CppResult toCpp(String code) {
-    MiniCpp.Compilation compilation = MiniCpp.compile(code);
-    return compilation.hasErrors()
-        ? new CppResult(null, compilation.diagnostics())
-        : new CppResult(CppExporter.export(compilation.program()), List.of());
-  }
-
   private static String formatAll(List<Diagnostic> diagnostics) {
     StringBuilder sb = new StringBuilder();
     for (Diagnostic d : diagnostics) {
@@ -152,7 +142,9 @@ public class MiniCppTools {
     return sb.toString();
   }
 
-  /** Keeps the first {@code limit} bytes of the program output and drops the rest. */
+  /**
+   * Keeps the first {@code limit} bytes of the program output and drops the rest.
+   */
   private static final class BoundedOutput extends OutputStream {
     private final ByteArrayOutputStream bytes = new ByteArrayOutputStream();
     private final int limit;
@@ -164,7 +156,7 @@ public class MiniCppTools {
 
     @Override
     public synchronized void write(int b) {
-      write(new byte[] {(byte) b}, 0, 1);
+      write(new byte[] { (byte) b }, 0, 1);
     }
 
     @Override

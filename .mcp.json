@@ -6,9 +6,7 @@
       "args": [
         "-cp",
         "mcp/build/install/minicpp-mcp/lib/*",
-        "de.cvogtlaender.mcp.McpServerMain",
-        "--transport",
-        "stdio"
+        "de.cvogtlaender.mcp.McpServerMain"
       ]
     }
   }
