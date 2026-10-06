@@ -308,7 +308,7 @@ public class McpStdioServer {
     JsonObject content = new JsonObject();
     content.addProperty("uri", LANGUAGE_URI);
     content.addProperty("mimeType", "text/plain");
-    content.addProperty("text", AssistantService.LANGUAGE);
+    content.addProperty("text", MiniCppTools.LANGUAGE);
     JsonArray contents = new JsonArray();
     contents.add(content);
     JsonObject result = new JsonObject();
