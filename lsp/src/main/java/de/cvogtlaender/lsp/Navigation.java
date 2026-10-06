@@ -25,7 +25,6 @@ import de.cvogtlaender.interpreter.ast.declaration.Decl;
 import de.cvogtlaender.interpreter.ast.declaration.FieldDecl;
 import de.cvogtlaender.interpreter.ast.declaration.MethodDecl;
 
-/** Go-to-definition, references, highlights, rename and the document outline. */
 public final class Navigation {
 
   private static final Set<String> RESERVED = Set.of("int", "bool", "char", "string", "void", "class", "public",
@@ -42,10 +41,10 @@ public final class Navigation {
     Decl target = occurrence.target();
     SymbolIndex.Occurrence declaration = analysis.index().declarationOf(target);
     if (declaration == null && target instanceof ConstructorDecl k && k.getOwner() != null) {
-      declaration = analysis.index().declarationOf(k.getOwner()); // implicit constructor
+      declaration = analysis.index().declarationOf(k.getOwner());
     }
     if (declaration == null) {
-      return List.of(); // built-in
+      return List.of();
     }
     return List.of(location(uri, analysis, declaration));
   }
@@ -73,7 +72,6 @@ public final class Navigation {
         .toList();
   }
 
-  /** The range of the renameable identifier at the position, or null. */
   public static Range prepareRename(Analysis analysis, Position position) {
     SymbolIndex.Occurrence occurrence = occurrenceAt(analysis, position);
     if (occurrence == null || !renameable(analysis, occurrence.symbol())) {
@@ -101,11 +99,9 @@ public final class Navigation {
   }
 
   private static boolean renameable(Analysis analysis, Decl symbol) {
-    // built-ins have no declaration in the document
     return analysis.index().declarationOf(symbol) != null;
   }
 
-  /** Classes with their members, and functions, as a hierarchical outline. */
   public static List<DocumentSymbol> documentSymbols(Analysis analysis) {
     if (analysis.index() == null) {
       return List.of();

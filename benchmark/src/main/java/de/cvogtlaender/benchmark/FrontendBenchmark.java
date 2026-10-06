@@ -14,11 +14,6 @@ import org.openjdk.jmh.annotations.State;
 
 import de.cvogtlaender.interpreter.MiniCpp;
 
-/**
- * Scalability of the static phases (lexing, parsing, AST construction,
- * resolving, type checking) with the size of the source: {@code classes}
- * classes, each with a few methods, plus as many functions using them.
- */
 @State(Scope.Benchmark)
 @BenchmarkMode(Mode.AverageTime)
 @OutputTimeUnit(TimeUnit.MILLISECONDS)

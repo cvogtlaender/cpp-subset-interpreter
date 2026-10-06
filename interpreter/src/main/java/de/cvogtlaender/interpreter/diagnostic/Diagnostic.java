@@ -2,10 +2,6 @@ package de.cvogtlaender.interpreter.diagnostic;
 
 import de.cvogtlaender.interpreter.ast.AstNode;
 
-/**
- * A problem found in a MiniC++ source. Lines are 1-based, columns 0-based;
- * the end position is exclusive. A line of 0 means "no position".
- */
 public record Diagnostic(Phase phase, int line, int column, int endLine, int endColumn, String message) {
 
   public enum Phase {

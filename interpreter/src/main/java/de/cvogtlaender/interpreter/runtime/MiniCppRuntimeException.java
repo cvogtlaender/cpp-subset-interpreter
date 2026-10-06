@@ -3,7 +3,6 @@ package de.cvogtlaender.interpreter.runtime;
 import de.cvogtlaender.interpreter.ast.AstNode;
 import de.cvogtlaender.interpreter.diagnostic.Diagnostic;
 
-/** An error during program execution, e.g. a division by zero. */
 public class MiniCppRuntimeException extends RuntimeException {
 
   private final transient AstNode node;

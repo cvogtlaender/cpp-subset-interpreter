@@ -9,10 +9,6 @@ import de.cvogtlaender.interpreter.ast.declaration.Decl;
 import de.cvogtlaender.interpreter.ast.declaration.MethodDecl;
 import de.cvogtlaender.interpreter.ast.expression.Expr;
 
-/**
- * Hover: the declaration of an identifier with its type and kind, or the
- * static type of the innermost expression elsewhere (operators, literals).
- */
 public final class Hovers {
 
   private Hovers() {

@@ -25,13 +25,8 @@ import de.cvogtlaender.interpreter.visitor.ASTBuildVisitor;
 import de.cvogtlaender.interpreter.visitor.ASTResolveVisitor;
 import de.cvogtlaender.interpreter.visitor.TypeCheckVisitor;
 
-/**
- * Entry point into the MiniC++ pipeline:
- * source -> lexer -> parser -> AST -> resolver -> type checker -> interpreter.
- */
 public final class MiniCpp {
 
-  /** Stack size for the interpreter thread; tree walking needs deep stacks. */
   private static final long INTERPRETER_STACK_SIZE = 1L << 29;
 
   private MiniCpp() {
@@ -43,7 +38,6 @@ public final class MiniCpp {
     }
   }
 
-  /** Result of the static phases. {@code globals} is null if parsing failed. */
   public record Compilation(Program program, GlobalScope globals, List<Diagnostic> diagnostics) {
     public boolean hasErrors() {
       return !diagnostics.isEmpty();
@@ -55,8 +49,6 @@ public final class MiniCpp {
       return !diagnostics.isEmpty();
     }
   }
-
-  // Parsing
 
   public static ParseResult<Program> parseProgram(String source) {
     return parse(source, MiniCppParser::program, tree -> (Program) tree.accept(new ASTBuildVisitor()));
@@ -104,8 +96,6 @@ public final class MiniCpp {
     }
   }
 
-  // Static analysis
-
   public static Compilation compile(String source) {
     ParseResult<Program> parsed = parseProgram(source);
     if (parsed.hasErrors()) {
@@ -114,7 +104,6 @@ public final class MiniCpp {
     return analyze(parsed.tree(), true);
   }
 
-  /** Resolves and type-checks a parsed program. */
   public static Compilation analyze(Program program, boolean requireMain) {
     GlobalScope globals = new GlobalScope();
     ASTResolveVisitor resolver = new ASTResolveVisitor(globals);
@@ -131,9 +120,6 @@ public final class MiniCpp {
     return new Compilation(program, globals, checker.getDiagnostics());
   }
 
-  // Execution
-
-  /** Compiles and runs a program, writing its output to {@code out}. */
   public static RunResult run(String source, PrintStream out) {
     Compilation compilation = compile(source);
     if (compilation.hasErrors()) {
@@ -153,7 +139,6 @@ public final class MiniCpp {
     }
   }
 
-  /** Runs {@code task} on a thread with a large stack, rethrowing its exceptions. */
   public static <T> T onLargeStack(Callable<T> task) {
     AtomicReference<T> result = new AtomicReference<>();
     AtomicReference<Throwable> failure = new AtomicReference<>();

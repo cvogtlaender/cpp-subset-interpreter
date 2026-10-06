@@ -51,20 +51,10 @@ import de.cvogtlaender.interpreter.semantic.GlobalScope;
 import de.cvogtlaender.interpreter.semantic.Types;
 import de.cvogtlaender.interpreter.visitor.AstVisitor;
 
-/**
- * Tree-walking interpreter. Expressions evaluate to runtime values (see
- * {@link Cell}); statements evaluate to {@code null}, or to a {@link Returned}
- * signal when a 'return' was executed.
- *
- * Must only run on ASTs that passed the resolver and type checker.
- */
 public class Interpreter implements AstVisitor<Object> {
 
-  /** Activation record of a function, method or constructor call. */
   private static final class Frame {
     final Map<Decl, Cell> variables = new IdentityHashMap<>(8);
-    // cells of local variables and by-value parameters, in creation order;
-    // they die when their scope ends, so that pointers to them dangle
     final List<Cell> owned = new ArrayList<>();
     final ObjectValue self;
     Type returnType;
@@ -80,7 +70,6 @@ public class Interpreter implements AstVisitor<Object> {
 
   private static final Returned VOID_RETURN = new Returned(null);
 
-  /** Maximum nesting of calls, standing in for the size of a native stack. */
   public static final int MAX_CALL_DEPTH = 100_000;
 
   private final GlobalScope globals;
@@ -118,7 +107,6 @@ public class Interpreter implements AstVisitor<Object> {
     return result;
   }
 
-  /** REPL: executes a statement in the session frame. */
   public void executeSessionStatement(Stmt stmt) {
     guard(() -> {
       frame = sessionFrame;
@@ -128,7 +116,6 @@ public class Interpreter implements AstVisitor<Object> {
     out.flush();
   }
 
-  /** REPL: evaluates an expression in the session frame. */
   public Object evaluateSessionExpr(Expr expr) {
     Object result = guard(() -> {
       frame = sessionFrame;
@@ -142,7 +129,6 @@ public class Interpreter implements AstVisitor<Object> {
     return sessionFrame.variables.containsKey(decl);
   }
 
-  /** Current value of a session variable, or null if it was never initialized. */
   public Object sessionValue(Decl decl) {
     Cell cell = sessionFrame.variables.get(decl);
     return cell == null ? null : cell.value;
@@ -158,7 +144,6 @@ public class Interpreter implements AstVisitor<Object> {
     try {
       return action.run();
     } catch (StackOverflowError e) {
-      // deeply nested expressions can still exhaust the Java stack
       throw new MiniCppRuntimeException("stack overflow (recursion too deep)", null);
     } finally {
       frame = saved;
@@ -166,8 +151,6 @@ public class Interpreter implements AstVisitor<Object> {
     }
   }
 
-  // loops and calls are the only ways to run indefinitely, so checking there makes
-  // an interrupt (e.g. a time limit of the caller) stop the program
   private static void checkInterrupted(AstNode at) {
     if (Thread.currentThread().isInterrupted()) {
       throw new MiniCppRuntimeException("execution interrupted", at);
@@ -185,8 +168,6 @@ public class Interpreter implements AstVisitor<Object> {
     }
     throw new MiniCppRuntimeException("no 'main' function defined", null);
   }
-
-  // Calls
 
   private Object invoke(List<ParameterDecl> params, Cell[] args, BlockStmt body, ObjectValue self,
       Type returnType) {
@@ -214,9 +195,6 @@ public class Interpreter implements AstVisitor<Object> {
     }
   }
 
-  /**
-   * Ends the lifetime of the current frame's cells created since {@code mark}.
-   */
   private void endScope(int mark) {
     List<Cell> owned = frame.owned;
     if (owned.size() > mark) {
@@ -250,10 +228,6 @@ public class Interpreter implements AstVisitor<Object> {
     return cells;
   }
 
-  /**
-   * Prepares a value for storing it in a new location of type {@code type}:
-   * objects are copied (or sliced), unless they are temporaries already.
-   */
   private Object storable(Object value, Type type, boolean fromLValue) {
     if (value instanceof ObjectValue o) {
       ClassDecl target = globals.classOf(type);
@@ -333,8 +307,6 @@ public class Interpreter implements AstVisitor<Object> {
     out.print('\n');
   }
 
-  // Declarations
-
   @Override
   public Object visitProgram(Program node) {
     throw new UnsupportedOperationException("use run()");
@@ -385,8 +357,6 @@ public class Interpreter implements AstVisitor<Object> {
     return null;
   }
 
-  // Statements
-
   @Override
   public Object visitBlockStmt(BlockStmt node) {
     int mark = frame.owned.size();
@@ -401,7 +371,7 @@ public class Interpreter implements AstVisitor<Object> {
   public Object visitDeleteStmt(DeleteStmt node) {
     Cell target = ((Pointer) node.getPointer().accept(this)).target();
     if (target == null) {
-      return null; // deleting nullptr does nothing
+      return null;
     }
     if (!target.isHeap()) {
       throw new MiniCppRuntimeException("'delete' of a pointer that was not obtained from 'new'", node);
@@ -470,8 +440,6 @@ public class Interpreter implements AstVisitor<Object> {
     return new Returned(storable(result, frame.returnType, value.isLValue()));
   }
 
-  // Expressions
-
   @Override
   public Object visitIntLiteral(IntLiteral node) {
     return node.getValue();
@@ -527,15 +495,11 @@ public class Interpreter implements AstVisitor<Object> {
     return object(node).field(node.getMemberName()).value;
   }
 
-  /** The object whose member 'obj.m' or 'p->m' accesses. */
   private ObjectValue object(MemberAccessExpr m) {
     Object value = m.getObj().accept(this);
     return (ObjectValue) (m.isArrow() ? deref(value, m).value : value);
   }
 
-  /**
-   * The cell a pointer points to; fails for null, dangling and deleted pointers.
-   */
   private static Cell deref(Object pointer, AstNode at) {
     Cell target = ((Pointer) pointer).target();
     if (target == null) {
@@ -552,7 +516,6 @@ public class Interpreter implements AstVisitor<Object> {
     return cell;
   }
 
-  /** The storage location an lvalue expression denotes. */
   private Cell lvalue(Expr expr) {
     switch (expr) {
       case VarExpr v -> {
@@ -566,7 +529,6 @@ public class Interpreter implements AstVisitor<Object> {
         if (cell == null) {
           throw new MiniCppRuntimeException("variable '" + v.getName() + "' was never initialized", v);
         }
-        // a reference may outlive what it refers to (e.g. 'int& r = *p; delete p;')
         return alive(cell, v);
       }
       case MemberAccessExpr m -> {
@@ -591,8 +553,6 @@ public class Interpreter implements AstVisitor<Object> {
     Cell target = lvalue(node.getTarget());
     Object value = node.getValue().accept(this);
     if (value instanceof ObjectValue source) {
-      // assign in place, so references into the target object stay valid;
-      // only the part belonging to the target's static type is copied (slicing)
       ClassDecl cls = globals.classOf(node.getTarget().getInferredType());
       assignObject((ObjectValue) target.value, source, cls);
     } else {
@@ -709,8 +669,6 @@ public class Interpreter implements AstVisitor<Object> {
       default -> throw new IllegalStateException();
     }
   }
-
-  // Types (not evaluated)
 
   @Override
   public Object visitClassType(ClassType node) {

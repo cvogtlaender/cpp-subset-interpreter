@@ -15,7 +15,6 @@ public class CallExpr extends Expr {
   }
 
   private Kind kind;
-  // FunctionDecl, MethodDecl or ConstructorDecl chosen by overload resolution
   private Decl target;
 
   public Kind getKind() {

@@ -20,15 +20,6 @@ import de.cvogtlaender.interpreter.ast.type.Type;
 import de.cvogtlaender.interpreter.semantic.GlobalScope;
 import de.cvogtlaender.interpreter.semantic.Types;
 
-/**
- * Completion of keywords, types, classes, functions, variables in scope and,
- * after {@code .} and {@code ->}, members of the object's class.
- *
- * While the user types, the text usually does not parse ({@code a.} is
- * incomplete), so the semantic information comes from the last analysis that
- * had an AST, and the object before {@code .}/{@code ->} is resolved from the
- * text: a chain like {@code a.b->c().} is followed through the declarations.
- */
 public final class Completions {
 
   static final List<String> TYPES = List.of("int", "bool", "char", "string", "void");
@@ -68,7 +59,7 @@ public final class Completions {
       return cls == null ? List.of() : members(cls);
     }
     if (before > 0 && src.charAt(before - 1) == '>' && prefixStart == offset) {
-      return List.of(); // triggered by '>' of a comparison
+      return List.of();
     }
 
     List<CompletionItem> items = new ArrayList<>();
@@ -116,7 +107,6 @@ public final class Completions {
     return items;
   }
 
-  /** Fields and methods of a class including inherited ones, without hidden base members. */
   static List<CompletionItem> members(ClassDecl cls) {
     List<CompletionItem> items = new ArrayList<>();
     Set<String> hidden = new HashSet<>();
@@ -139,11 +129,6 @@ public final class Completions {
     return items;
   }
 
-  /**
-   * The class of the object whose member access operator starts at
-   * {@code operator}, resolved from a chain of names, calls and member
-   * accesses in the text. Null if it cannot be determined.
-   */
   private static ClassDecl receiverClass(String src, int operator, AstNodes.Scope scope, GlobalScope globals) {
     List<Segment> chain = new ArrayList<>();
     int i = operator;
@@ -209,7 +194,6 @@ public final class Completions {
     return cls == null ? null : new ClassType(cls.getClassName());
   }
 
-  // type of a field access or return type of a method call on cls
   private static Type member(ClassDecl cls, Segment segment) {
     ClassDecl owner = GlobalScope.findMemberOwner(cls, segment.name());
     if (owner == null) {
@@ -223,7 +207,6 @@ public final class Completions {
     return methods.isEmpty() ? null : methods.get(0).getReturnType();
   }
 
-  // the class of a value, reference or pointer
   private static ClassDecl classOf(Type type, GlobalScope globals) {
     if (type == null) {
       return null;
@@ -255,7 +238,6 @@ public final class Completions {
     return i;
   }
 
-  // a cheap check on the current line: after '//' or inside a string or char literal
   private static boolean inCommentOrLiteral(String src, int offset) {
     int lineStart = src.lastIndexOf('\n', offset - 1) + 1;
     char quote = 0;

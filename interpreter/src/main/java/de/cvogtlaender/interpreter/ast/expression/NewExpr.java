@@ -6,12 +6,10 @@ import de.cvogtlaender.interpreter.ast.declaration.ConstructorDecl;
 import de.cvogtlaender.interpreter.ast.type.Type;
 import de.cvogtlaender.interpreter.visitor.AstVisitor;
 
-/** 'new T' or 'new T(args)'; evaluates to a 'T*' to a new heap object. */
 public class NewExpr extends Expr {
 
   private Type allocatedType;
   private List<Expr> arguments;
-  // for class types: the constructor chosen by overload resolution
   private ConstructorDecl constructor;
 
   public NewExpr(Type allocatedType, List<Expr> arguments) {

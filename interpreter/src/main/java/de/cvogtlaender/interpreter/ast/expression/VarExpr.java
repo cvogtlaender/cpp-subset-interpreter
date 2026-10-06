@@ -14,7 +14,6 @@ public class VarExpr extends Expr {
   }
 
   private Kind kind;
-  // class in which a FIELD or METHOD name was found
   private ClassDecl memberOwner;
 
   public Kind getKind() {

@@ -19,18 +19,6 @@ import de.cvogtlaender.interpreter.ast.declaration.ClassDecl;
 import de.cvogtlaender.interpreter.ast.declaration.FieldDecl;
 import de.cvogtlaender.interpreter.ast.declaration.MethodDecl;
 
-/**
- * Quick fixes for diagnostics, recognized by their message:
- * <ul>
- * <li>syntax "missing 'X' at ..." - insert X after the previous token</li>
- * <li>syntax "extraneous input 'X' ..." - remove X</li>
- * <li>"use of undeclared identifier", "unknown type", "no member named" -
- * replace with a similarly spelled name that exists</li>
- * <li>"did you mean to use '->'?" - replace '.' with '->'</li>
- * <li>"method 'm' must be called" - append '()'</li>
- * <li>"no 'main' function defined" - add an empty main</li>
- * </ul>
- */
 public final class CodeActions {
 
   private static final Pattern MISSING = Pattern.compile("^missing '(.+)' at ");
@@ -67,7 +55,6 @@ public final class CodeActions {
     Matcher m;
 
     if ((m = MISSING.matcher(message)).find()) {
-      // insert right after the previous token rather than before the offending one
       int at = start;
       while (at > 0 && Character.isWhitespace(src.charAt(at - 1))) {
         at--;
@@ -139,7 +126,6 @@ public final class CodeActions {
     return names;
   }
 
-  /** Edit distance counting insertions, deletions, substitutions and swaps of adjacent characters. */
   static int distance(String a, String b) {
     int[][] d = new int[a.length() + 1][b.length() + 1];
     for (int i = 0; i <= a.length(); i++) {

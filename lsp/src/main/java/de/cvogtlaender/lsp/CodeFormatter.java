@@ -32,16 +32,6 @@ import de.cvogtlaender.interpreter.MiniCppParser.UnaryExprContext;
 import de.cvogtlaender.interpreter.MiniCppParser.VarDeclContext;
 import de.cvogtlaender.interpreter.MiniCppParser.WhileStmtContext;
 
-/**
- * Pretty-printer driven by the parse tree: one statement per line, braces
- * K&R style, {@code public:} labels at class level, non-block bodies of
- * {@code if}/{@code while} on their own indented line, spaces around binary
- * operators and none after unary ones, {@code T* p} for pointer and reference
- * types. Comments are kept, as are single blank lines; top-level declarations
- * are separated by one blank line.
- *
- * Programs with syntax errors are not formatted.
- */
 public final class CodeFormatter {
 
   private enum Separator {
@@ -67,7 +57,6 @@ public final class CodeFormatter {
     this.newline = source.contains("\r\n") ? "\r\n" : "\n";
   }
 
-  /** The formatted source, or null if it has syntax errors. */
   public static String format(String source, int tabSize, boolean insertSpaces) {
     boolean[] failed = { false };
     BaseErrorListener listener = new BaseErrorListener() {
@@ -93,8 +82,6 @@ public final class CodeFormatter {
     return formatter.emit();
   }
 
-  // Pass 1: terminals with their indentation context
-
   private void collect(ParseTree tree, int extra) {
     if (tree instanceof TerminalNode terminal) {
       if (terminal.getSymbol().getType() != Token.EOF) {
@@ -115,7 +102,6 @@ public final class CodeFormatter {
     }
   }
 
-  // the body of 'if'/'else'/'while' without braces, except the 'if' of 'else if'
   private static boolean isNonBlockBody(StatementContext statement) {
     if (statement.block() != null) {
       return false;
@@ -126,8 +112,6 @@ public final class CodeFormatter {
     }
     return statement.getParent() instanceof WhileStmtContext;
   }
-
-  // Pass 2: output
 
   private String emit() {
     int previousEnd = 0;
@@ -177,10 +161,6 @@ public final class CodeFormatter {
     return out.toString();
   }
 
-  /**
-   * Emits the comments in a gap between two tokens and returns the separator
-   * to use before the next token.
-   */
   private Separator comments(String gap, Separator separator, int indent, boolean atStart, boolean afterOpenBrace) {
     List<Comment> comments = parseComments(gap);
     if (comments.isEmpty()) {
@@ -272,7 +252,6 @@ public final class CodeFormatter {
         || type(node) == MiniCppLexer.AMP && node.getParent() instanceof TypeRefContext;
   }
 
-  /** The {@code public} or {@code :} of the {@code public:} label in a class body. */
   private static boolean isLabel(TerminalNode node) {
     if (!(node.getParent() instanceof ClassDefContext)) {
       return false;
@@ -297,8 +276,6 @@ public final class CodeFormatter {
   private static int type(TerminalNode node) {
     return node.getSymbol().getType();
   }
-
-  // Gaps
 
   private static List<Comment> parseComments(String gap) {
     List<Comment> comments = new ArrayList<>();
@@ -328,7 +305,6 @@ public final class CodeFormatter {
     return comments;
   }
 
-  // the whitespace at the end of a gap, after its last comment
   private static String trailingSpace(String gap) {
     int i = gap.length();
     while (i > 0 && Character.isWhitespace(gap.charAt(i - 1))) {

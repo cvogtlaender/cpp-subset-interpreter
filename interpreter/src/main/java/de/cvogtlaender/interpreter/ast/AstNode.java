@@ -4,7 +4,6 @@ import de.cvogtlaender.interpreter.visitor.AstVisitor;
 
 public abstract class AstNode {
 
-  // 1-based lines, 0-based columns (ANTLR convention); end is exclusive
   private int line;
   private int column;
   private int endLine;

@@ -45,12 +45,6 @@ import org.eclipse.lsp4j.jsonrpc.messages.Either3;
 import org.eclipse.lsp4j.services.LanguageClient;
 import org.eclipse.lsp4j.services.TextDocumentService;
 
-/**
- * Document synchronization and per-document features. Every change schedules
- * a debounced re-analysis with {@code MiniCpp.compile}, whose diagnostics are
- * published to the client. Requests use the analysis of the current text,
- * computing it right away if the debounced one is still pending.
- */
 public class MiniCppTextDocumentService implements TextDocumentService {
 
   private final Map<String, Document> documents = new ConcurrentHashMap<>();
@@ -78,8 +72,6 @@ public class MiniCppTextDocumentService implements TextDocumentService {
   public Document document(String uri) {
     return documents.get(uri);
   }
-
-  // Synchronization
 
   @Override
   public void didOpen(DidOpenTextDocumentParams params) {
@@ -128,7 +120,7 @@ public class MiniCppTextDocumentService implements TextDocumentService {
     }
     Analysis analysis = doc.analysis();
     if (analysis.compilation() == null || analysis.version() != doc.version()) {
-      return; // crashed (logged), or edited meanwhile and a newer analysis is scheduled
+      return;
     }
     publish(uri, analysis.compilation().diagnostics().stream().map(Positions::toLsp).toList(), analysis.version());
   }
@@ -139,7 +131,6 @@ public class MiniCppTextDocumentService implements TextDocumentService {
     }
   }
 
-  /** Runs a request against the current analysis of a document; {@code empty} if it is not open. */
   private <T> CompletableFuture<T> withAnalysis(String uri, T empty, Function<Analysis, T> request) {
     return CompletableFuture.supplyAsync(() -> {
       Document doc = documents.get(uri);
@@ -149,8 +140,6 @@ public class MiniCppTextDocumentService implements TextDocumentService {
       return request.apply(doc.analysis());
     });
   }
-
-  // Features
 
   @Override
   public CompletableFuture<Hover> hover(HoverParams params) {

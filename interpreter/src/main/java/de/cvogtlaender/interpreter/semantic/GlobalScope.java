@@ -14,11 +14,6 @@ import de.cvogtlaender.interpreter.ast.declaration.MethodDecl;
 import de.cvogtlaender.interpreter.ast.declaration.ParameterDecl;
 import de.cvogtlaender.interpreter.ast.type.Type;
 
-/**
- * Global symbols shared by resolver, type checker and interpreter: classes,
- * (overloaded) free functions including the built-ins, and - for the REPL -
- * the session scope holding variables declared at the prompt.
- */
 public class GlobalScope {
 
   public static final List<String> BUILTINS = List.of("print_bool", "print_int", "print_char", "print_string");
@@ -48,7 +43,6 @@ public class GlobalScope {
     return functions;
   }
 
-  /** Variables declared at the REPL prompt, by name. */
   public Map<String, Decl> getSession() {
     return session;
   }
@@ -62,11 +56,6 @@ public class GlobalScope {
     return Types.isClass(stripped) ? classes.get(stripped.getName()) : null;
   }
 
-  /**
-   * Finds the class in the inheritance chain (starting at {@code cls}) that
-   * first declares a member named {@code name}. Members of derived classes hide
-   * same-named members of base classes, as in C++.
-   */
   public static ClassDecl findMemberOwner(ClassDecl cls, String name) {
     for (ClassDecl c = cls; c != null; c = c.getParent()) {
       for (FieldDecl f : c.getFields()) {
@@ -113,7 +102,6 @@ public class GlobalScope {
     return null;
   }
 
-  /** All fields including inherited ones, base class fields first. */
   public static List<FieldDecl> allFields(ClassDecl cls) {
     List<ClassDecl> chain = new ArrayList<>();
     for (ClassDecl c = cls; c != null; c = c.getParent()) {

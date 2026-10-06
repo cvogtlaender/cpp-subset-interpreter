@@ -14,7 +14,6 @@ import de.cvogtlaender.interpreter.ast.declaration.VariableDecl;
 import de.cvogtlaender.interpreter.ast.type.Type;
 import de.cvogtlaender.interpreter.semantic.Types;
 
-/** Names, C++-style signatures and descriptions of declarations. */
 public final class Names {
 
   private Names() {
@@ -33,7 +32,6 @@ public final class Names {
     };
   }
 
-  /** The declared type of a variable, parameter or field, or the return type of a callable. */
   public static Type typeOf(Decl decl) {
     return switch (decl) {
       case FieldDecl f -> f.getType();
@@ -45,7 +43,6 @@ public final class Names {
     };
   }
 
-  /** The declaration as C++ source, e.g. {@code int A::get(int x)}. */
   public static String signature(Decl decl) {
     return switch (decl) {
       case ClassDecl c -> "class " + c.getClassName()
@@ -61,7 +58,6 @@ public final class Names {
     };
   }
 
-  /** A short signature without owner, as shown next to completion items. */
   public static String detail(Decl decl) {
     return switch (decl) {
       case FunctionDecl f -> f.getReturnType().getName() + " " + f.getName() + parameters(f.getParameters());
@@ -88,7 +84,6 @@ public final class Names {
     };
   }
 
-  /** The base class method that {@code m} overrides, or null. */
   public static MethodDecl overridden(MethodDecl m) {
     if (m.getOwner() == null) {
       return null;

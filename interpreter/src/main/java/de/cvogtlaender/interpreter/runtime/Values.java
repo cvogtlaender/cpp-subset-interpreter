@@ -1,12 +1,10 @@
 package de.cvogtlaender.interpreter.runtime;
 
-/** Formatting of runtime values for output and the REPL. */
 public final class Values {
 
   private Values() {
   }
 
-  /** Text as produced by the print_* built-ins. */
   public static String format(Object value) {
     return switch (value) {
       case null -> "void";
@@ -15,7 +13,6 @@ public final class Values {
     };
   }
 
-  /** Text as shown by the REPL, with literal syntax for chars and strings. */
   public static String display(Object value) {
     return switch (value) {
       case Character c -> "'" + escape(String.valueOf(c)) + "'";

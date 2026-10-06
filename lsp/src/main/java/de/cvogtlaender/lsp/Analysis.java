@@ -4,14 +4,6 @@ import de.cvogtlaender.interpreter.MiniCpp;
 import de.cvogtlaender.interpreter.ast.Program;
 import de.cvogtlaender.interpreter.semantic.GlobalScope;
 
-/**
- * The analysis of one version of a document.
- *
- * {@code compilation} is null if the pipeline crashed. {@code index} is null
- * if there is no AST (syntax errors). {@code lastParsed} is the most recent
- * analysis of this document that has an AST, possibly this one; completion
- * falls back to it while the user is typing incomplete code.
- */
 public record Analysis(int version, SourceText text, Tokens tokens, MiniCpp.Compilation compilation,
     SymbolIndex index, Analysis lastParsed) {
 
@@ -22,7 +14,6 @@ public record Analysis(int version, SourceText text, Tokens tokens, MiniCpp.Comp
     try {
       compilation = MiniCpp.compile(text);
     } catch (RuntimeException | StackOverflowError e) {
-      // never let a crash in the pipeline take down the server
       System.err.println("analysis failed: " + e);
       compilation = null;
     }

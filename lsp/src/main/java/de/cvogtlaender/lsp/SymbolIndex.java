@@ -26,23 +26,12 @@ import de.cvogtlaender.interpreter.ast.expression.NewExpr;
 import de.cvogtlaender.interpreter.ast.expression.VarExpr;
 import de.cvogtlaender.interpreter.semantic.GlobalScope;
 
-/**
- * Every identifier in a program that names a declaration, found by combining
- * the resolved AST with the token stream (AST nodes know their range but not
- * where exactly their name is).
- *
- * Each occurrence has a {@code target}, the exact declaration it refers to
- * (used for go-to-definition and hover), and a {@code symbol} grouping all
- * occurrences that must be renamed together: constructors belong to their
- * class, overriding methods to the base method they override.
- */
 public final class SymbolIndex {
 
   public record Occurrence(int start, int end, Decl symbol, Decl target, boolean declaration) {
   }
 
   private final TreeMap<Integer, Occurrence> occurrences = new TreeMap<>();
-  // declaration -> occurrence of its name in its declaration
   private final Map<Decl, Occurrence> declarations = new IdentityHashMap<>();
   private final Tokens tokens;
   private final SourceText text;
@@ -60,7 +49,6 @@ public final class SymbolIndex {
     return index;
   }
 
-  /** The occurrence under the cursor, including a cursor right after the identifier. */
   public Occurrence at(int offset) {
     var entry = occurrences.floorEntry(offset);
     if (entry != null && offset <= entry.getValue().end()) {
@@ -69,7 +57,6 @@ public final class SymbolIndex {
     return null;
   }
 
-  /** All occurrences of a symbol in source order. */
   public List<Occurrence> occurrencesOf(Decl symbol) {
     List<Occurrence> result = new ArrayList<>();
     for (Occurrence o : occurrences.values()) {
@@ -80,12 +67,10 @@ public final class SymbolIndex {
     return result;
   }
 
-  /** The name in the declaration of {@code decl}, or null (built-ins, implicit constructors). */
   public Occurrence declarationOf(Decl decl) {
     return declarations.get(decl);
   }
 
-  /** The symbol that occurrences of {@code decl} are grouped under. */
   public static Decl canonical(Decl decl) {
     if (decl instanceof ConstructorDecl k && k.getOwner() != null) {
       return k.getOwner();
@@ -98,8 +83,6 @@ public final class SymbolIndex {
     }
     return decl;
   }
-
-  // Traversal
 
   private void visit(AstNode node) {
     switch (node) {
@@ -192,14 +175,11 @@ public final class SymbolIndex {
     if (target == null) {
       return;
     }
-    // the member name is the last token of the expression
     int i = tokens.indexStartingAt(text.endOffset(m) - m.getMemberName().length());
     if (m.getMemberName().equals(text(i))) {
       reference(i, canonical(target), target);
     }
   }
-
-  // Helpers
 
   private void declare(int tokenIndex, Decl symbol, Decl decl) {
     Occurrence o = add(tokenIndex, symbol, decl, true);
@@ -222,11 +202,6 @@ public final class SymbolIndex {
     return o;
   }
 
-  /**
-   * Skips a type starting at token {@code i} ({@code T}, {@code T*},
-   * {@code T*&}, ...), recording a class name as a reference. Returns the
-   * index of the token after the type.
-   */
   private int skipType(int i) {
     if (type(i) == MiniCppLexer.Identifier) {
       ClassDecl cls = globals.getClass(text(i));

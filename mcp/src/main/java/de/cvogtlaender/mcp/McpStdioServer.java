@@ -27,21 +27,12 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParseException;
 import com.google.gson.JsonParser;
 
-/**
- * A server for the Model Context Protocol (MCP) over stdio: newline-delimited
- * JSON-RPC 2.0 on stdin/stdout. It offers the MiniC++ compiler and interpreter
- * ({@link MiniCppTools}) as tools and the language summary as a resource, so
- * that MCP hosts (Claude Code, Claude Desktop, VS Code, ...) can check and run
- * the code their model writes.
- */
 public class McpStdioServer {
 
-  /** Protocol versions this server speaks, newest first. */
   static final List<String> PROTOCOL_VERSIONS = List.of("2025-11-25", "2025-06-18", "2025-03-26", "2024-11-05");
 
   static final String LANGUAGE_URI = "minicpp://language";
 
-  // JSON-RPC error codes
   static final int PARSE_ERROR = -32700;
   static final int INVALID_REQUEST = -32600;
   static final int METHOD_NOT_FOUND = -32601;
@@ -83,7 +74,6 @@ public class McpStdioServer {
               MiniCppTools.DEFAULT_TIMEOUT.toSeconds()))
       .getAsJsonArray();
 
-  /** Error answered with a JSON-RPC error response. */
   static final class RpcError extends Exception {
     final int code;
 
@@ -96,14 +86,12 @@ public class McpStdioServer {
   private final MiniCppTools tools;
   private final BufferedReader in;
   private final Writer out;
-  // nulls are needed for "id": null in error responses
   private final Gson gson = new GsonBuilder().disableHtmlEscaping().serializeNulls().create();
   private final ExecutorService workers = Executors.newCachedThreadPool(task -> {
     Thread thread = new Thread(task, "mcp-worker");
     thread.setDaemon(true);
     return thread;
   });
-  // tool calls in progress, by request id, so that they can be cancelled
   private final Map<JsonElement, FutureTask<?>> running = new ConcurrentHashMap<>();
 
   public McpStdioServer(MiniCppTools tools, InputStream in, OutputStream out) {
@@ -112,7 +100,6 @@ public class McpStdioServer {
     this.out = new OutputStreamWriter(out, StandardCharsets.UTF_8);
   }
 
-  /** Serves until stdin is closed, then waits briefly for running tool calls. */
   public void serve() throws IOException {
     String line;
     while ((line = in.readLine()) != null) {
@@ -146,7 +133,7 @@ public class McpStdioServer {
     }
 
     if (!message.has("method")) {
-      return; // a response; this server sends no requests
+      return;
     }
     JsonElement methodElement = message.get("method");
     JsonElement id = message.get("id");
@@ -168,12 +155,10 @@ public class McpStdioServer {
           call.cancel(true);
         }
       }
-      return; // other notifications, e.g. notifications/initialized, need no action
+      return;
     }
 
     if (method.equals("tools/call")) {
-      // tool calls may take a while; run them in the background so that pings and
-      // cancellations get through
       FutureTask<Void> call = new FutureTask<>(() -> {
         JsonObject response = respond(id, method, params);
         if (running.remove(id) != null) {
@@ -269,7 +254,6 @@ public class McpStdioServer {
         default -> throw new RpcError(INVALID_PARAMS, "unknown tool: " + name);
       };
     } catch (IllegalArgumentException e) {
-      // invalid arguments are reported to the model, which can correct them
       return toolResult(e.getMessage(), null, true);
     }
     return toolResult(result.text(), gson.toJsonTree(result).getAsJsonObject(), false);
@@ -371,7 +355,6 @@ public class McpStdioServer {
     send(error(id, code, message));
   }
 
-  // one message per line; Gson escapes newlines inside strings
   private synchronized void send(JsonObject message) {
     try {
       out.write(gson.toJson(message));

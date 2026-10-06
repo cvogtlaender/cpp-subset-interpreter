@@ -31,7 +31,6 @@ import de.cvogtlaender.interpreter.ast.statement.Stmt;
 import de.cvogtlaender.interpreter.ast.statement.VariableStmt;
 import de.cvogtlaender.interpreter.ast.statement.WhileStmt;
 
-/** Generic AST traversal: children in source order, lookup by position and scopes. */
 public final class AstNodes {
 
   private static final Comparator<AstNode> BY_POSITION = Comparator.comparingInt(AstNode::getLine)
@@ -40,7 +39,6 @@ public final class AstNodes {
   private AstNodes() {
   }
 
-  /** Direct children of a node in source order; synthesized constructors are left out. */
   public static List<AstNode> children(AstNode node) {
     List<AstNode> result = switch (node) {
       case Program p -> concat(p.getClassDefs().stream(), p.getFunctions().stream());
@@ -79,7 +77,6 @@ public final class AstNodes {
     return text.startOffset(node) <= offset && offset <= text.endOffset(node);
   }
 
-  /** The innermost expression containing {@code offset}, or null. */
   public static Expr innermostExpr(Program program, SourceText text, int offset) {
     Expr found = null;
     AstNode node = program;
@@ -99,14 +96,8 @@ public final class AstNodes {
     return found;
   }
 
-  /**
-   * What is visible at an offset: the enclosing class and callable (either may
-   * be null) and the parameters and local variables declared before it, in
-   * declaration order.
-   */
   public record Scope(ClassDecl enclosingClass, Decl callable, List<Decl> locals) {
 
-    /** The innermost local variable or parameter named {@code name}, or null. */
     public Decl local(String name) {
       for (int i = locals.size() - 1; i >= 0; i--) {
         if (Names.of(locals.get(i)).equals(name)) {

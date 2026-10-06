@@ -18,13 +18,8 @@ import org.eclipse.lsp4j.services.LanguageServer;
 import org.eclipse.lsp4j.services.TextDocumentService;
 import org.eclipse.lsp4j.services.WorkspaceService;
 
-/**
- * The MiniC++ language server. Lifecycle and capabilities live here; the
- * per-document features are in {@link MiniCppTextDocumentService}.
- */
 public class MiniCppLanguageServer implements LanguageServer, LanguageClientAware {
 
-  /** Delay between the last edit and re-analysis of a document. */
   public static final long DEFAULT_DEBOUNCE_MILLIS = 200;
 
   private final MiniCppTextDocumentService textDocuments;
