@@ -17,11 +17,6 @@ import java.util.stream.Stream;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 
-/**
- * Runs every {@code programs/*.cpp} and compares its output with the
- * {@code .expected} file next to it. A line {@code // expect-exit: N} sets the
- * expected exit code (default 0).
- */
 class ProgramTest {
 
   private static final Pattern EXPECT_EXIT = Pattern.compile("//\\s*expect-exit:\\s*(-?\\d+)");

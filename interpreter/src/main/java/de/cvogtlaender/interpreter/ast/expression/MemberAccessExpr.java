@@ -7,7 +7,6 @@ public class MemberAccessExpr extends Expr {
 
   private Expr obj;
   private String memberName;
-  // 'p->m' instead of 'obj.m'
   private boolean arrow;
   private FieldDecl resolvedField;
 

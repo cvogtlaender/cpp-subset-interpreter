@@ -23,7 +23,6 @@ public class MethodDecl extends Decl {
     this.owner = owner;
   }
 
-  // virtual either explicitly or by overriding a virtual base method
   private boolean effectivelyVirtual;
 
   public boolean isEffectivelyVirtual() {

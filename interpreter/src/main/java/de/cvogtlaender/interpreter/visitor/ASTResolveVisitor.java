@@ -51,16 +51,6 @@ import de.cvogtlaender.interpreter.semantic.GlobalScope;
 import de.cvogtlaender.interpreter.semantic.Types;
 import de.cvogtlaender.interpreter.ast.AstNode;
 
-/**
- * Two-pass name resolver. Pass 1 collects classes and functions (so they may
- * be used before their definition), links base classes and checks member
- * declarations. Pass 2 binds every identifier to its declaration using the
- * lookup order local -> own members -> inherited members -> global.
- *
- * In the REPL, declarations and statements are resolved one at a time via
- * {@link #declareClass}, {@link #declareFunction} and
- * {@link #resolveSessionStatement}, which yields define-before-use semantics.
- */
 public class ASTResolveVisitor implements AstVisitor<Void> {
 
   private final GlobalScope globals;
@@ -100,10 +90,7 @@ public class ASTResolveVisitor implements AstVisitor<Void> {
     return !diagnostics.isEmpty();
   }
 
-  // Entry points
-
   public void resolve(Program program) {
-    // pass 1: collect declarations
     for (ClassDecl c : program.getClassDefs()) {
       collectClass(c);
     }
@@ -117,11 +104,9 @@ public class ASTResolveVisitor implements AstVisitor<Void> {
       checkMembers(c);
     }
 
-    // pass 2: resolve bodies
     visitProgram(program);
   }
 
-  /** REPL: declares a class and resolves its members immediately. */
   public void declareClass(ClassDecl c) {
     int before = diagnostics.size();
     collectClass(c);
@@ -133,13 +118,11 @@ public class ASTResolveVisitor implements AstVisitor<Void> {
     c.accept(this);
   }
 
-  /** REPL: declares a function and resolves its body immediately. */
   public void declareFunction(FunctionDecl f) {
     collectFunction(f);
     f.accept(this);
   }
 
-  /** REPL: resolves a statement in the session scope. */
   public void resolveSessionStatement(Stmt stmt) {
     localScopes.push(globals.getSession());
     try {
@@ -149,7 +132,6 @@ public class ASTResolveVisitor implements AstVisitor<Void> {
     }
   }
 
-  /** REPL: resolves a bare expression in the session scope. */
   public void resolveSessionExpr(Expr expr) {
     localScopes.push(globals.getSession());
     try {
@@ -158,8 +140,6 @@ public class ASTResolveVisitor implements AstVisitor<Void> {
       localScopes.pop();
     }
   }
-
-  // Pass 1
 
   private void collectClass(ClassDecl c) {
     String name = c.getClassName();
@@ -201,10 +181,10 @@ public class ASTResolveVisitor implements AstVisitor<Void> {
       error(c, "unknown base class '" + parentName + "' of class '" + c.getClassName() + "'");
       return;
     }
-    // reject inheritance cycles
     Set<ClassDecl> seen = new HashSet<>();
     seen.add(c);
-    for (ClassDecl p = parent; p != null; p = globals.getClass(p.getParentClassName() == null ? "" : p.getParentClassName())) {
+    for (ClassDecl p = parent; p != null; p = globals
+        .getClass(p.getParentClassName() == null ? "" : p.getParentClassName())) {
       if (!seen.add(p)) {
         error(c, "class '" + c.getClassName() + "' inherits from itself");
         return;
@@ -264,8 +244,6 @@ public class ASTResolveVisitor implements AstVisitor<Void> {
     }
   }
 
-  // Pass 2
-
   @Override
   public Void visitProgram(Program node) {
     for (ClassDecl c : node.getClassDefs()) {
@@ -324,7 +302,6 @@ public class ASTResolveVisitor implements AstVisitor<Void> {
   }
 
   private void resolveCallable(List<ParameterDecl> parameters, BlockStmt body) {
-    // function bodies never see REPL session variables (no globals)
     Deque<Map<String, Decl>> saved = new ArrayDeque<>(localScopes);
     localScopes.clear();
     pushScope();
@@ -332,7 +309,6 @@ public class ASTResolveVisitor implements AstVisitor<Void> {
       for (ParameterDecl p : parameters) {
         p.accept(this);
       }
-      // the outermost block shares the parameter scope, as in C++
       for (Stmt stmt : body.getStatements()) {
         stmt.accept(this);
       }
@@ -395,7 +371,6 @@ public class ASTResolveVisitor implements AstVisitor<Void> {
     return null;
   }
 
-  // a non-block branch such as 'if (c) int x = 1;' still gets its own scope
   private void resolveBranch(Stmt branch) {
     pushScope();
     try {
@@ -503,8 +478,6 @@ public class ASTResolveVisitor implements AstVisitor<Void> {
 
   @Override
   public Void visitMemberAccessExpr(MemberAccessExpr node) {
-    // the member itself is looked up by the type checker, which knows the
-    // static type of the object expression
     node.getObj().accept(this);
     return null;
   }
@@ -577,8 +550,6 @@ public class ASTResolveVisitor implements AstVisitor<Void> {
     return null;
   }
 
-  // Helpers
-
   private void pushScope() {
     localScopes.push(new LinkedHashMap<>());
   }
@@ -592,7 +563,6 @@ public class ASTResolveVisitor implements AstVisitor<Void> {
       return;
     }
     Map<String, Decl> scope = localScopes.peek();
-    // the REPL session scope allows re-declaring a variable
     if (scope.containsKey(name) && scope != globals.getSession()) {
       error(at, "redeclaration of '" + name + "'");
       return;
@@ -612,7 +582,6 @@ public class ASTResolveVisitor implements AstVisitor<Void> {
         validateType(rt.getReferencedType(), at, false);
       }
     } else if (type instanceof PointerType pt) {
-      // without casts a 'void*' could never be used
       if (Types.isVoid(pt.getPointeeType())) {
         error(at, "pointers to 'void' are not supported");
       } else {

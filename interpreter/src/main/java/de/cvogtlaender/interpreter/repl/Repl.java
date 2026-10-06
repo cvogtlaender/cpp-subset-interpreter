@@ -30,15 +30,6 @@ import de.cvogtlaender.interpreter.semantic.Types;
 import de.cvogtlaender.interpreter.visitor.ASTResolveVisitor;
 import de.cvogtlaender.interpreter.visitor.TypeCheckVisitor;
 
-/**
- * Interactive read-eval-print loop. Each input may contain class and function
- * definitions, statements, and a trailing expression without ';' whose value
- * is printed. Variables live in the session scope, functions and classes in
- * the global scope; define-before-use applies.
- *
- * An input is checked as a whole before anything runs; if it has errors, none
- * of its declarations are kept.
- */
 public class Repl {
 
   public enum Status {
@@ -69,11 +60,6 @@ public class Repl {
     interpreter = new Interpreter(globals, out);
   }
 
-  /**
-   * Loads a source file into the session: its classes and functions become
-   * global, and if it defines {@code main()}, main runs in the session scope so
-   * that its variables remain accessible.
-   */
   public Status load(String source) {
     MiniCpp.ParseResult<Program> parsed = MiniCpp.parseProgram(source);
     if (parsed.hasErrors()) {
@@ -126,7 +112,6 @@ public class Repl {
     return Status.OK;
   }
 
-  /** Evaluates one complete input. Returns INCOMPLETE if more lines are needed. */
   public Status eval(String input) {
     MiniCpp.ParseResult<ReplInput> parsed = MiniCpp.parseReplInput(input);
     if (parsed.hasErrors()) {
@@ -138,7 +123,6 @@ public class Repl {
     }
     ReplInput chunk = parsed.tree();
 
-    // check everything first
     GlobalScope.Snapshot snapshot = globals.snapshot();
     resolver.getDiagnostics().clear();
     checker.getDiagnostics().clear();
@@ -184,7 +168,6 @@ public class Repl {
       return Status.ERROR;
     }
 
-    // then run it
     try {
       Type shownType = trailingType;
       MiniCpp.onLargeStack(() -> {
@@ -208,7 +191,6 @@ public class Repl {
     return Status.OK;
   }
 
-  /** Runs the interactive loop until end of input or ':quit'. */
   public void run(BufferedReader in) throws IOException {
     out.println("MiniC++ REPL - enter declarations, statements or expressions. Type :help for help.");
     StringBuilder buffer = new StringBuilder();
@@ -243,7 +225,6 @@ public class Repl {
     }
   }
 
-  /** Handles a ':' command. Returns false to quit. */
   private boolean command(String line) {
     String[] parts = line.split("\\s+", 2);
     switch (parts[0]) {

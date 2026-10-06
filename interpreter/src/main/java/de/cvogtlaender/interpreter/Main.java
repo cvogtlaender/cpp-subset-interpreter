@@ -18,7 +18,6 @@ public class Main {
              minicpp run <file.cpp>        run a program
              minicpp check <file.cpp>      report errors without running
              minicpp ast <file.cpp>        print the AST
-             minicpp to-cpp <file.cpp>     translate to standard C++ (for comparing with g++)
              minicpp repl [file.cpp]       interactive session (optionally loading a file first)""";
 
   public static void main(String[] args) {

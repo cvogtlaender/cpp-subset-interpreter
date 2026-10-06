@@ -12,8 +12,6 @@ public final class ObjectValue {
 
   private final ClassDecl cls;
   private final Map<String, Cell> fields = new LinkedHashMap<>();
-  // class whose virtual methods are called; differs from cls only while a
-  // base class constructor runs (as in C++)
   private ClassDecl dynamicClass;
 
   public ObjectValue(ClassDecl cls) {
@@ -49,10 +47,6 @@ public final class ObjectValue {
     return result;
   }
 
-  /**
-   * A copy containing only the part of this object that belongs to
-   * {@code target}.
-   */
   public ObjectValue sliceTo(ClassDecl target) {
     ObjectValue result = new ObjectValue(target);
     for (FieldDecl f : GlobalScope.allFields(target)) {

@@ -79,10 +79,6 @@ import de.cvogtlaender.interpreter.MiniCppParser.UnaryExprContext;
 import de.cvogtlaender.interpreter.MiniCppParser.VarDeclContext;
 import de.cvogtlaender.interpreter.MiniCppParser.WhileStmtContext;
 
-/**
- * Builds the AST from an ANTLR parse tree. Must only be applied to parse
- * trees without syntax errors.
- */
 public class ASTBuildVisitor extends MiniCppBaseVisitor<Object> {
 
   @Override
@@ -125,8 +121,6 @@ public class ASTBuildVisitor extends MiniCppBaseVisitor<Object> {
 
     return new ReplInput(items, trailing);
   }
-
-  // Declaration
 
   @Override
   public Object visitDeclaration(DeclarationContext ctx) {
@@ -271,8 +265,6 @@ public class ASTBuildVisitor extends MiniCppBaseVisitor<Object> {
 
     return method;
   }
-
-  // Expression
 
   @Override
   public Object visitExpr(ExprContext ctx) {
@@ -437,7 +429,6 @@ public class ASTBuildVisitor extends MiniCppBaseVisitor<Object> {
       op = UnaryExpr.Operator.ADDRESS_OF;
     }
 
-    // fold '-2147483648', which is out of range as a positive literal
     if (op == UnaryExpr.Operator.NEGATE && unaryExpr instanceof ErrorExpr
         && ctx.unaryExpr().getText().equals("2147483648")) {
       return at(new IntLiteral(Integer.MIN_VALUE), ctx);
@@ -545,8 +536,6 @@ public class ASTBuildVisitor extends MiniCppBaseVisitor<Object> {
     return at(new CharLiteral(unescape(text.substring(1, text.length() - 1)).charAt(0)), ctx);
   }
 
-  // Statement
-
   @Override
   public Object visitStatement(StatementContext ctx) {
 
@@ -627,7 +616,6 @@ public class ASTBuildVisitor extends MiniCppBaseVisitor<Object> {
     if (ctx.ASSIGN() != null) {
       value = (Expr) visit(ctx.expr());
     } else if (ctx.argList() != null) {
-      // direct initialization 'T x(a, b);' is sugar for 'T x = T(a, b);'
       List<Expr> args = new ArrayList<>();
 
       for (ExprContext e : ctx.argList().expr()) {
@@ -663,8 +651,6 @@ public class ASTBuildVisitor extends MiniCppBaseVisitor<Object> {
 
     return deleteStmt;
   }
-
-  // Other
 
   @Override
   public Object visitBaseType(BaseTypeContext ctx) {
@@ -708,8 +694,6 @@ public class ASTBuildVisitor extends MiniCppBaseVisitor<Object> {
     return referenceType;
   }
 
-  // Helpers
-
   private static <N extends AstNode> N at(N node, ParserRuleContext ctx) {
     Token start = ctx.getStart();
     Token stop = ctx.getStop() != null ? ctx.getStop() : start;
@@ -718,7 +702,6 @@ public class ASTBuildVisitor extends MiniCppBaseVisitor<Object> {
     return node;
   }
 
-  // range from the start of 'from' to the end of 'to'
   private static <N extends AstNode> N span(N node, AstNode from, ParserRuleContext to) {
     at(node, to);
     node.setRange(from.getLine(), from.getColumn(), node.getEndLine(), node.getEndColumn());

@@ -11,10 +11,6 @@ import de.cvogtlaender.interpreter.ast.type.PrimitiveType;
 import de.cvogtlaender.interpreter.ast.type.ReferenceType;
 import de.cvogtlaender.interpreter.ast.type.Type;
 
-/**
- * Helpers for comparing the syntactic {@link Type} nodes semantically. Types
- * are compared by name, e.g. "int", "A", "A&".
- */
 public final class Types {
 
   public static final PrimitiveType INT = new PrimitiveType(PrimitiveType.Kind.INT);
@@ -27,7 +23,6 @@ public final class Types {
   private Types() {
   }
 
-  /** The type without a trailing reference marker. */
   public static Type strip(Type type) {
     return type instanceof ReferenceType r ? r.getReferencedType() : type;
   }
@@ -56,7 +51,6 @@ public final class Types {
     return type instanceof PointerType;
   }
 
-  /** A pointer or 'nullptr', i.e. a value that can be null. */
   public static boolean isPointerLike(Type type) {
     return type instanceof PointerType || type instanceof NullptrType;
   }
@@ -65,7 +59,6 @@ public final class Types {
     return name + "(" + parameters.stream().map(p -> p.getType().getName()).collect(Collectors.joining(", ")) + ")";
   }
 
-  /** Signature key used for override matching and vtables. */
   public static String parameterKey(List<ParameterDecl> parameters) {
     return parameters.stream().map(p -> p.getType().getName()).collect(Collectors.joining(","));
   }

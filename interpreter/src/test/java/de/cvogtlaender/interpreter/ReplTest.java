@@ -93,7 +93,6 @@ class ReplTest {
 
   @Test
   void failedInputLeavesNoTrace() {
-    // the function is fine, but the statement after it is not: nothing is kept
     assertEquals(Status.ERROR, repl.eval("int g() { return 1; } int z = true;"));
     assertTrue(err().contains("cannot initialize 'z'"));
     assertEquals(Status.ERROR, repl.eval("g()"));
@@ -123,7 +122,6 @@ class ReplTest {
     assertEquals(Status.OK, repl.eval("int zero = 0;"));
     assertEquals(Status.ERROR, repl.eval("10 / zero"));
     assertTrue(err().contains("runtime error: division by zero"));
-    // the session survives
     assertEquals(Status.OK, repl.eval("zero + 1"));
     assertEquals("1\n", out());
   }

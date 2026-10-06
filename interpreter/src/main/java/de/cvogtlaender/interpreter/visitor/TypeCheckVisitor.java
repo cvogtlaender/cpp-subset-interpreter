@@ -49,21 +49,12 @@ import de.cvogtlaender.interpreter.diagnostic.Diagnostic;
 import de.cvogtlaender.interpreter.semantic.GlobalScope;
 import de.cvogtlaender.interpreter.semantic.Types;
 
-/**
- * Declaration-based type checker. Runs after {@link ASTResolveVisitor} and
- * annotates every expression with its (non-reference) type and lvalue-ness,
- * picks overloads for calls, and computes which methods are virtual.
- *
- * Visiting an expression returns its type, or {@code null} if it is erroneous
- * (errors are reported once, at the innermost node).
- */
 public class TypeCheckVisitor implements AstVisitor<Type> {
 
   private final GlobalScope globals;
   private final List<Diagnostic> diagnostics = new ArrayList<>();
   private final Set<ClassDecl> checkedClasses = new HashSet<>();
 
-  // context of the callable currently being checked; null at the REPL prompt
   private Type currentReturnType;
   private String currentCallableName;
   private boolean inConstructor;
@@ -79,8 +70,6 @@ public class TypeCheckVisitor implements AstVisitor<Type> {
   public boolean hasErrors() {
     return !diagnostics.isEmpty();
   }
-
-  // Entry points
 
   public void check(Program program) {
     for (ClassDecl c : program.getClassDefs()) {
@@ -109,13 +98,11 @@ public class TypeCheckVisitor implements AstVisitor<Type> {
     }
   }
 
-  /** REPL: checks a newly declared class. */
   public void checkClass(ClassDecl c) {
     checkClassDeclaration(c);
     c.accept(this);
   }
 
-  /** REPL: checks a newly declared function. */
   public void checkFunction(FunctionDecl f) {
     if (f.getName().equals("main")) {
       validateMain(f);
@@ -123,7 +110,6 @@ public class TypeCheckVisitor implements AstVisitor<Type> {
     f.accept(this);
   }
 
-  /** REPL: checks a statement entered at the prompt. */
   public void checkSessionStatement(Stmt stmt) {
     currentReturnType = null;
     currentCallableName = null;
@@ -131,13 +117,10 @@ public class TypeCheckVisitor implements AstVisitor<Type> {
     stmt.accept(this);
   }
 
-  /** REPL: checks a bare expression entered at the prompt, returns its type. */
   public Type checkSessionExpr(Expr expr) {
     currentReturnType = null;
     return expr.accept(this);
   }
-
-  // Classes
 
   private void checkClassDeclaration(ClassDecl c) {
     if (!checkedClasses.add(c)) {
@@ -213,8 +196,6 @@ public class TypeCheckVisitor implements AstVisitor<Type> {
     return false;
   }
 
-  // Declarations
-
   @Override
   public Type visitProgram(Program node) {
     for (ClassDecl c : node.getClassDefs()) {
@@ -285,7 +266,6 @@ public class TypeCheckVisitor implements AstVisitor<Type> {
       case ReturnStmt r -> true;
       case BlockStmt b -> b.getStatements().stream().anyMatch(TypeCheckVisitor::alwaysReturns);
       case IfStmt i -> i.getElseBranch() != null && alwaysReturns(i.getIfBranch()) && alwaysReturns(i.getElseBranch());
-      // 'while (true)' never completes normally
       case WhileStmt w -> w.getCondition() instanceof BoolLiteral b && b.getValue();
       default -> false;
     };
@@ -335,8 +315,6 @@ public class TypeCheckVisitor implements AstVisitor<Type> {
     return null;
   }
 
-  // Statements
-
   @Override
   public Type visitBlockStmt(BlockStmt node) {
     for (Stmt stmt : node.getStatements()) {
@@ -382,7 +360,6 @@ public class TypeCheckVisitor implements AstVisitor<Type> {
     return null;
   }
 
-  // the only place with an implicit conversion to bool
   private void checkCondition(Expr condition, String statement) {
     Type type = condition.accept(this);
     if (type != null && !Types.is(type, PrimitiveType.Kind.BOOL) && !Types.is(type, PrimitiveType.Kind.INT)
@@ -422,8 +399,6 @@ public class TypeCheckVisitor implements AstVisitor<Type> {
     return null;
   }
 
-  // Expressions
-
   @Override
   public Type visitIntLiteral(IntLiteral node) {
     return typed(node, Types.INT, false);
@@ -458,7 +433,7 @@ public class TypeCheckVisitor implements AstVisitor<Type> {
   @Override
   public Type visitVarExpr(VarExpr node) {
     if (node.getKind() == null) {
-      return null; // reported by the resolver
+      return null;
     }
     return switch (node.getKind()) {
       case VARIABLE -> typed(node, Types.strip(declaredType(node.getResolvedDecl())), true);
@@ -506,11 +481,6 @@ public class TypeCheckVisitor implements AstVisitor<Type> {
     return typed(node, field.getType(), node.isArrow() || node.getObj().isLValue());
   }
 
-  /**
-   * The class whose member {@code m} accesses: the class of the object for
-   * 'obj.m', the pointee class for 'p->m'. Reports an error and returns null
-   * if there is none.
-   */
   private ClassDecl accessedClass(MemberAccessExpr m, Type objType) {
     if (m.isArrow()) {
       ClassDecl cls = objType instanceof PointerType p ? globals.classOf(p.getPointeeType()) : null;
@@ -655,7 +625,7 @@ public class TypeCheckVisitor implements AstVisitor<Type> {
 
     if (callee instanceof VarExpr v) {
       if (v.getKind() == null) {
-        return null; // reported by the resolver
+        return null;
       }
       switch (v.getKind()) {
         case FUNCTION -> {
@@ -663,7 +633,8 @@ public class TypeCheckVisitor implements AstVisitor<Type> {
             return null;
           }
           List<FunctionDecl> candidates = globals.getFunctions().get(v.getName());
-          FunctionDecl f = pickOverload(v.getName(), candidates, FunctionDecl::getParameters, node, node.getArguments(), argTypes);
+          FunctionDecl f = pickOverload(v.getName(), candidates, FunctionDecl::getParameters, node, node.getArguments(),
+              argTypes);
           if (f == null) {
             return null;
           }
@@ -752,7 +723,7 @@ public class TypeCheckVisitor implements AstVisitor<Type> {
 
     Type type = node.getAllocatedType();
     if (Types.isVoid(type)) {
-      return null; // reported by the resolver
+      return null;
     }
     if (Types.isClass(type)) {
       ClassDecl cls = globals.classOf(type);
@@ -778,12 +749,6 @@ public class TypeCheckVisitor implements AstVisitor<Type> {
     return typed(node, new PointerType(type), false);
   }
 
-  /**
-   * Overload resolution by exact match of parameter types (including '&').
-   * Only if no candidate matches exactly, implicit conversions (derived to base
-   * class, derived to base pointer, nullptr to pointer) are considered. More
-   * than one best candidate is an error.
-   */
   private <D extends Decl> D pickOverload(String name, List<D> candidates,
       Function<D, List<ParameterDecl>> params, AstNode call, List<Expr> args, List<Type> argTypes) {
     List<D> exact = new ArrayList<>();
@@ -814,7 +779,6 @@ public class TypeCheckVisitor implements AstVisitor<Type> {
     return null;
   }
 
-  /** -1: not viable, 0: exact match, >0: number of implicit conversions. */
   private int matchCost(List<ParameterDecl> params, List<Expr> args, List<Type> argTypes) {
     if (params.size() != args.size()) {
       return -1;
@@ -830,7 +794,6 @@ public class TypeCheckVisitor implements AstVisitor<Type> {
       if (Types.same(target, argType)) {
         continue;
       }
-      // a reference cannot bind to a converted pointer, which would be a temporary
       boolean converts = Types.isReference(paramType) ? bindable(target, argType) : assignable(target, argType);
       if (converts) {
         cost++;
@@ -841,17 +804,14 @@ public class TypeCheckVisitor implements AstVisitor<Type> {
     return cost;
   }
 
-  /** Value of type {@code value} may be stored into {@code target} (maybe by slicing). */
   private boolean assignable(Type target, Type value) {
     return bindable(target, value) || pointerConvertible(target, value);
   }
 
-  /** A reference to {@code target} may refer to an lvalue of type {@code value}. */
   private boolean bindable(Type target, Type value) {
     return Types.same(target, value) || isDerivedFrom(value, target);
   }
 
-  /** 'nullptr' to any pointer, 'D*' to 'B*' if D derives from B. */
   private boolean pointerConvertible(Type target, Type value) {
     if (!(target instanceof PointerType t)) {
       return false;
@@ -865,8 +825,6 @@ public class TypeCheckVisitor implements AstVisitor<Type> {
     ClassDecl b = globals.classOf(base);
     return d != null && b != null && d != b && d.isSubclassOf(b);
   }
-
-  // Types (not visited)
 
   @Override
   public Type visitClassType(ClassType node) {
@@ -892,8 +850,6 @@ public class TypeCheckVisitor implements AstVisitor<Type> {
   public Type visitReferenceType(ReferenceType node) {
     return node;
   }
-
-  // Helpers
 
   private static Type typed(Expr expr, Type type, boolean lvalue) {
     expr.setInferredType(type);
