@@ -8,10 +8,6 @@ import org.eclipse.lsp4j.Range;
 
 import de.cvogtlaender.interpreter.ast.AstNode;
 
-/**
- * A document text with a line index, converting between character offsets,
- * LSP positions (0-based lines) and interpreter positions (1-based lines).
- */
 public final class SourceText {
 
   private final String text;
@@ -37,12 +33,10 @@ public final class SourceText {
     return text.length();
   }
 
-  /** Offset of an LSP position, clamped to the document and to its line. */
   public int offset(Position position) {
     return offset(position.getLine() + 1, position.getCharacter());
   }
 
-  /** Offset of an interpreter position (1-based line, 0-based column), clamped. */
   public int offset(int line, int column) {
     if (line < 1) {
       return 0;

@@ -12,10 +12,6 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 
-/**
- * Generates text with a local Ollama server via its {@code /api/generate}
- * endpoint (https://github.com/ollama/ollama/blob/main/docs/api.md).
- */
 public class OllamaProvider implements GenAiProvider {
 
   private final HttpClient http;
@@ -48,7 +44,6 @@ public class OllamaProvider implements GenAiProvider {
     body.addProperty("prompt", prompt);
     body.addProperty("stream", false);
     JsonObject options = new JsonObject();
-    // low temperature: code assistance should be focused, not creative
     options.addProperty("temperature", 0.2);
     body.add("options", options);
 
@@ -96,7 +91,6 @@ public class OllamaProvider implements GenAiProvider {
       JsonArray models = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonArray("models");
       for (JsonElement m : models) {
         String name = m.getAsJsonObject().get("name").getAsString();
-        // "codellama" matches "codellama:latest"
         if (name.equals(model) || name.startsWith(model + ":")) {
           return true;
         }

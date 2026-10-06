@@ -18,19 +18,12 @@ import de.cvogtlaender.interpreter.MiniCpp;
 import de.cvogtlaender.interpreter.ast.Program;
 import de.cvogtlaender.interpreter.diagnostic.Diagnostic;
 
-/**
- * The MiniC++ compiler and interpreter as tools for an LLM host (see
- * {@link McpStdioServer}). Unlike {@link AssistantService} no GenAI provider is
- * involved: the host's model does the reasoning and uses these tools to check
- * and run code.
- */
 public class MiniCppTools {
 
   public static final Duration DEFAULT_TIMEOUT = Duration.ofSeconds(10);
   public static final Duration MAX_TIMEOUT = Duration.ofSeconds(60);
   static final int MAX_OUTPUT_BYTES = 100_000;
 
-  /** A tool result: structured fields plus a text rendering for the model. */
   public interface Result {
     String text();
   }
@@ -42,10 +35,6 @@ public class MiniCppTools {
     }
   }
 
-  /**
-   * {@code exitCode} is null if the program did not compile or hit the time
-   * limit.
-   */
   public record RunResult(boolean compiled, Integer exitCode, String output, boolean outputTruncated,
       boolean timedOut, List<Diagnostic> diagnostics) implements Result {
     @Override
@@ -81,19 +70,11 @@ public class MiniCppTools {
     return thread;
   });
 
-  /**
-   * Compiler diagnostics; {@code main} is only required if the code defines one.
-   */
   public CheckResult check(String code) {
     List<Diagnostic> diagnostics = AssistantService.check(code);
     return new CheckResult(diagnostics.isEmpty(), diagnostics);
   }
 
-  /**
-   * Compiles and runs a program, stopping it after {@code timeout}.
-   *
-   * @throws CancellationException if the calling thread is interrupted
-   */
   public RunResult run(String code, Duration timeout) {
     MiniCpp.Compilation compilation = MiniCpp.compile(code);
     if (compilation.hasErrors()) {
@@ -108,8 +89,6 @@ public class MiniCppTools {
       return new RunResult(true, result.exitCode(), output.text(), output.truncated(), false,
           result.diagnostics());
     } catch (TimeoutException e) {
-      // interrupts the interpreter thread, which stops at its next loop iteration or
-      // call
       execution.cancel(true);
       out.flush();
       Diagnostic stopped = new Diagnostic(Diagnostic.Phase.RUNTIME, 0, 0, 0, 0,
@@ -142,9 +121,6 @@ public class MiniCppTools {
     return sb.toString();
   }
 
-  /**
-   * Keeps the first {@code limit} bytes of the program output and drops the rest.
-   */
   private static final class BoundedOutput extends OutputStream {
     private final ByteArrayOutputStream bytes = new ByteArrayOutputStream();
     private final int limit;

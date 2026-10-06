@@ -10,14 +10,8 @@ import de.cvogtlaender.interpreter.diagnostic.Diagnostic;
 import de.cvogtlaender.mcp.provider.GenAiException;
 import de.cvogtlaender.mcp.provider.GenAiProvider;
 
-/**
- * The GenAI features: prompt construction, calling the provider, and turning
- * the model's free text into structured results. Wherever possible the
- * answers are grounded with, or checked against, the real MiniC++ compiler.
- */
 public class AssistantService {
 
-  /** Summary of the language, so that the model does not suggest unsupported C++. */
   static final String LANGUAGE = """
       MiniC++ is a small subset of C++. It has exactly these features:
       - types bool, int, char, string, void; references T& (variables must be initialized, parameters)
@@ -61,7 +55,6 @@ public class AssistantService {
   public record BugReport(List<Diagnostic> compilerDiagnostics, List<Finding> findings, String analysis) {
   }
 
-  /** Suggests code to insert at the cursor (1-based line, 0-based column). */
   public Completion complete(String code, int line, int column) throws GenAiException {
     int offset = offsetOf(code, line, column);
     String prompt = "Complete the MiniC++ code at the marker <CURSOR>.\n\n"
@@ -99,7 +92,6 @@ public class AssistantService {
         ? answer.substring(rationaleAt + "Rationale:".length()).strip()
         : fenced ? answer.replace(block.group(), "").strip() : "";
 
-    // never hand out a refactoring without checking it with the real compiler
     List<Diagnostic> diagnostics = check(refactored);
     return new Refactoring(refactored, rationale, diagnostics.isEmpty(), diagnostics);
   }
@@ -122,7 +114,6 @@ public class AssistantService {
     return new BugReport(diagnostics, findings, analysis);
   }
 
-  /** Compiler diagnostics of a complete program or of declarations only (no main required). */
   static List<Diagnostic> check(String code) {
     MiniCpp.ParseResult<de.cvogtlaender.interpreter.ast.Program> parsed = MiniCpp.parseProgram(code);
     if (parsed.hasErrors()) {
@@ -132,7 +123,6 @@ public class AssistantService {
     return MiniCpp.analyze(parsed.tree(), hasMain).diagnostics();
   }
 
-  // gives the model the compiler's findings as ground truth
   private static String withDiagnostics(String code, List<Diagnostic> diagnostics) {
     if (diagnostics.isEmpty()) {
       return code;
@@ -156,7 +146,6 @@ public class AssistantService {
   static String stripFences(String text) {
     Matcher block = CODE_BLOCK.matcher(text);
     String result = block.find() ? block.group(1) : text;
-    // keep leading indentation, drop trailing whitespace
     return result.stripTrailing();
   }
 

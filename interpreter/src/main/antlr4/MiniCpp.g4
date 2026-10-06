@@ -4,8 +4,6 @@ program
     : declaration* EOF
     ;
 
-// REPL input: declarations and statements in any order, optionally
-// terminated by a bare expression whose value is printed.
 replInput
     : (declaration | statement)* expr? EOF
     ;
@@ -17,7 +15,6 @@ declaration
 
 // TYPES
 
-// 'T*', 'T**', ...; a statement 'a * b;' is therefore parsed as a declaration
 type
     : (baseType | Identifier) STAR*
     ;

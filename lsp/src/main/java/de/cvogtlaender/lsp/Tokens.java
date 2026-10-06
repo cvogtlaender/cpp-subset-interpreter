@@ -7,11 +7,6 @@ import org.antlr.v4.runtime.Token;
 
 import de.cvogtlaender.interpreter.MiniCppLexer;
 
-/**
- * The tokens of a document (without comments and whitespace), ordered by
- * position. Token offsets count code points, which equal UTF-16 offsets for
- * all characters in the BMP.
- */
 public final class Tokens {
 
   private final List<? extends Token> tokens;

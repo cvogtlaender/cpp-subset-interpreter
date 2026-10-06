@@ -16,11 +16,6 @@ import org.openjdk.jmh.annotations.State;
 
 import de.cvogtlaender.interpreter.MiniCpp;
 
-/**
- * Execution speed of typical workloads, each with a size parameter to show how
- * the interpreter scales. Programs are compiled once per trial; the benchmark
- * measures interpretation only.
- */
 @State(Scope.Benchmark)
 @BenchmarkMode(Mode.AverageTime)
 @OutputTimeUnit(TimeUnit.MILLISECONDS)
@@ -52,25 +47,21 @@ public class InterpreterBenchmark {
     return c;
   }
 
-  /** Recursive calls: fib(n) makes about 1.6^n calls. */
   @Benchmark
   public int recursiveFib() {
     return MiniCpp.execute(fib, NULL_OUT).exitCode();
   }
 
-  /** Arithmetic and assignments in a while loop with n * 10,000 iterations. */
   @Benchmark
   public int arithmeticLoop() {
     return MiniCpp.execute(loop, NULL_OUT).exitCode();
   }
 
-  /** n * 1,000 virtual method calls through a base class reference. */
   @Benchmark
   public int virtualDispatch() {
     return MiniCpp.execute(dispatch, NULL_OUT).exitCode();
   }
 
-  /** n * 1,000 constructions, copies and slicing assignments of objects. */
   @Benchmark
   public int objectCopies() {
     return MiniCpp.execute(objects, NULL_OUT).exitCode();

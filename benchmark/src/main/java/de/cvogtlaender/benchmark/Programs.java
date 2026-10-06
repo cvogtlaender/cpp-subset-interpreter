@@ -1,6 +1,5 @@
 package de.cvogtlaender.benchmark;
 
-/** MiniC++ programs used as benchmark workloads. */
 final class Programs {
 
   private Programs() {
@@ -106,7 +105,6 @@ final class Programs {
         """.formatted(count);
   }
 
-  /** A synthetic program with {@code classes} classes and as many functions. */
   static String largeProgram(int classes) {
     StringBuilder sb = new StringBuilder();
     for (int i = 0; i < classes; i++) {
