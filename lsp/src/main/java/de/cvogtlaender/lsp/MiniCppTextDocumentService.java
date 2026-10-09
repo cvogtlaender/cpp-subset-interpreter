@@ -21,7 +21,6 @@ import org.eclipse.lsp4j.DidChangeTextDocumentParams;
 import org.eclipse.lsp4j.DidCloseTextDocumentParams;
 import org.eclipse.lsp4j.DidOpenTextDocumentParams;
 import org.eclipse.lsp4j.DidSaveTextDocumentParams;
-import org.eclipse.lsp4j.DocumentFormattingParams;
 import org.eclipse.lsp4j.DocumentHighlight;
 import org.eclipse.lsp4j.DocumentHighlightParams;
 import org.eclipse.lsp4j.DocumentSymbol;
@@ -38,7 +37,6 @@ import org.eclipse.lsp4j.Range;
 import org.eclipse.lsp4j.ReferenceParams;
 import org.eclipse.lsp4j.RenameParams;
 import org.eclipse.lsp4j.SymbolInformation;
-import org.eclipse.lsp4j.TextEdit;
 import org.eclipse.lsp4j.WorkspaceEdit;
 import org.eclipse.lsp4j.jsonrpc.messages.Either;
 import org.eclipse.lsp4j.jsonrpc.messages.Either3;
@@ -197,19 +195,6 @@ public class MiniCppTextDocumentService implements TextDocumentService {
     return withAnalysis(params.getTextDocument().getUri(), List.of(),
         analysis -> Navigation.documentSymbols(analysis).stream()
             .map(Either::<SymbolInformation, DocumentSymbol>forRight).toList());
-  }
-
-  @Override
-  public CompletableFuture<List<? extends TextEdit>> formatting(DocumentFormattingParams params) {
-    return withAnalysis(params.getTextDocument().getUri(), List.of(), analysis -> {
-      String text = analysis.text().text();
-      String formatted = CodeFormatter.format(text, params.getOptions().getTabSize(),
-          params.getOptions().isInsertSpaces());
-      if (formatted == null || formatted.equals(text)) {
-        return List.of();
-      }
-      return List.of(new TextEdit(analysis.text().wholeDocument(), formatted));
-    });
   }
 
   @Override
