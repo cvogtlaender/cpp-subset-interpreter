@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "minicpp": {
+      "type": "stdio",
+      "command": "java",
+        "args": ["-jar", "mcp/build/libs/minicpp-mcp.jar"]
+    }
+  }
+}

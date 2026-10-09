@@ -1,0 +1,22 @@
+{
+  "name": "MiniC++",
+  "scopeName": "source.minicpp",
+  "patterns": [
+    { "name": "comment.line.double-slash.minicpp", "match": "//.*$" },
+    { "name": "comment.block.minicpp", "begin": "/\*", "end": "\*/" },
+    { "name": "meta.preprocessor.minicpp", "match": "^\s*#.*$" },
+    {
+      "name": "string.quoted.double.minicpp",
+      "begin": "\"", "end": "\"",
+      "patterns": [{ "name": "constant.character.escape.minicpp", "match": "\\[btnr\"'\\0]" }]
+    },
+    { "name": "string.quoted.single.minicpp", "match": "'(\\[btnr\"'\\0]|[^'\\])'" },
+    { "name": "keyword.control.minicpp", "match": "\b(if|else|while|return|new|delete)\b" },
+    { "name": "storage.type.minicpp", "match": "\b(int|bool|char|string|void|class)\b" },
+    { "name": "storage.modifier.minicpp", "match": "\b(public|virtual)\b" },
+    { "name": "constant.language.minicpp", "match": "\b(true|false|nullptr)\b" },
+    { "name": "constant.numeric.minicpp", "match": "\b[0-9]+\b" },
+    { "name": "support.function.builtin.minicpp", "match": "\bprint_(bool|int|char|string)\b" },
+    { "name": "entity.name.function.minicpp", "match": "\b[A-Za-z_][A-Za-z0-9_]*(?=\s*\()" }
+  ]
+}

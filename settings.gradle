@@ -1,0 +1,6 @@
+rootProject.name = 'cpp-subset-interpreter'
+
+include 'interpreter'
+include 'lsp'
+include 'mcp'
+include 'benchmark'

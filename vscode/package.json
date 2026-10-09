@@ -1,0 +1,83 @@
+{
+  "name": "minicpp",
+  "displayName": "MiniC++",
+  "description": "Language support for MiniC++ (diagnostics, hover, completion, navigation, rename, formatting, quick fixes)",
+  "version": "1.0.0",
+  "publisher": "cvogtlaender",
+  "license": "MIT",
+  "private": true,
+  "engines": {
+    "vscode": "^1.91.0"
+  },
+  "categories": [
+    "Programming Languages"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "languages": [
+      {
+        "id": "minicpp",
+        "aliases": [
+          "MiniC++",
+          "minicpp"
+        ],
+        "extensions": [
+          ".mcpp"
+        ],
+        "configuration": "./language-configuration.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "minicpp",
+        "scopeName": "source.minicpp",
+        "path": "./syntaxes/minicpp.tmLanguage.json"
+      }
+    ],
+    "configuration": {
+      "title": "MiniC++",
+      "properties": {
+        "minicpp.server.path": {
+          "type": "string",
+          "default": "",
+          "description": "Path to a minicpp-lsp start script. Empty: use the server bundled with the extension, or lsp/build/install/minicpp-lsp when running from the repository."
+        },
+        "minicpp.java.path": {
+          "type": "string",
+          "default": "",
+          "description": "Java 21+ executable for the bundled server. Empty: JAVA_HOME, then 'java' on the PATH."
+        },
+        "minicpp.trace.server": {
+          "type": "string",
+          "enum": [
+            "off",
+            "messages",
+            "verbose"
+          ],
+          "default": "off",
+          "description": "Traces the communication between VS Code and the language server."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "vscode:prepublish": "npm run compile",
+    "bundle-server": "node scripts/bundle-server.js",
+    "package": "npm run bundle-server && vsce package"
+  },
+  "dependencies": {
+    "vscode-languageclient": "^10.1.2"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@types/vscode": "~1.91.0",
+    "@vscode/vsce": "^4.0.0",
+    "typescript": "^5.6.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/cvogtlaender/cpp-subset-interpreter"
+  }
+}

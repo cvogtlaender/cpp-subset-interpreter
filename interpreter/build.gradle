@@ -1,0 +1,60 @@
+plugins {
+    id 'java'
+    id 'antlr'
+    id 'application'
+}
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_21
+    targetCompatibility = JavaVersion.VERSION_21
+}
+
+dependencies {
+    antlr 'org.antlr:antlr4:4.13.2'
+    implementation 'org.antlr:antlr4-runtime:4.13.2'
+
+    testImplementation platform('org.junit:junit-bom:5.11.4')
+    testImplementation 'org.junit.jupiter:junit-jupiter'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+}
+
+generateGrammarSource {
+    arguments += ['-visitor', '-no-listener']
+    packageName = "de.cvogtlaender.interpreter"
+}
+
+sourceSets {
+    main {
+        antlr {
+            srcDirs = ['src/main/antlr4']
+        }
+    }
+}
+
+application {
+    mainClass = 'de.cvogtlaender.interpreter.Main'
+    applicationName = 'minicpp'
+}
+
+run {
+    // the REPL reads from stdin
+    standardInput = System.in
+}
+
+test {
+    useJUnitPlatform()
+    // deep recursion tests run the interpreter on its own large-stack thread
+    maxHeapSize = '1g'
+    testLogging {
+        events 'failed'
+        exceptionFormat 'full'
+    }
+}
+
+// the antlr plugin adds the whole ANTLR tool to 'api'; only the runtime is needed
+// at run time, so keep the tool out of the classpath of distributions and dependents
+configurations {
+    api {
+        extendsFrom = extendsFrom.findAll { it != configurations.antlr }
+    }
+}

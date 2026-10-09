@@ -1,0 +1,4 @@
+{
+  // the examples are MiniC++, not C++
+  "files.associations": { "*.cpp": "minicpp" }
+}
