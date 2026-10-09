@@ -26,7 +26,7 @@ import de.cvogtlaender.interpreter.diagnostic.Diagnostic;
 import io.modelcontextprotocol.spec.McpSchema.CallToolResult;
 
 @Service
-public class MiniCppTools {
+public class McpTools {
 
   static final String LANGUAGE = """
       MiniC++ is a small subset of C++. It has exactly these features:

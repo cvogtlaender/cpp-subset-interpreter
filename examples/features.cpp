@@ -1,6 +1,3 @@
-// A tour of MiniC++. Run it with:   minicpp run examples/features.cpp
-// or explore it interactively with: minicpp repl examples/features.cpp
-
 #include <iostream> // preprocessor lines are ignored
 
 // Classes may be used before their definition (and so may functions).
@@ -90,7 +87,7 @@ int main() {
   show(alice.balance);
   show(bob.balance);
 
-  // polymorphism through a base class reference
+  // polymorphism
   Account& any = bob;
   show(any.monthlyFee());
 
