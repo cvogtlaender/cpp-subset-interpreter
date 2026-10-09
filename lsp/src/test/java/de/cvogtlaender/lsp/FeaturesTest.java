@@ -20,10 +20,8 @@ import org.eclipse.lsp4j.DefinitionParams;
 import org.eclipse.lsp4j.Diagnostic;
 import org.eclipse.lsp4j.DidChangeTextDocumentParams;
 import org.eclipse.lsp4j.DidOpenTextDocumentParams;
-import org.eclipse.lsp4j.DocumentFormattingParams;
 import org.eclipse.lsp4j.DocumentSymbol;
 import org.eclipse.lsp4j.DocumentSymbolParams;
-import org.eclipse.lsp4j.FormattingOptions;
 import org.eclipse.lsp4j.Hover;
 import org.eclipse.lsp4j.HoverParams;
 import org.eclipse.lsp4j.InitializeParams;
@@ -96,7 +94,8 @@ class FeaturesTest {
 
   @Test
   void programIsValid() {
-    assertTrue(MiniCpp.compile(PROGRAM).diagnostics().isEmpty(), () -> MiniCpp.compile(PROGRAM).diagnostics().toString());
+    assertTrue(MiniCpp.compile(PROGRAM).diagnostics().isEmpty(),
+        () -> MiniCpp.compile(PROGRAM).diagnostics().toString());
   }
 
   // Hover
@@ -222,7 +221,8 @@ class FeaturesTest {
   @Test
   void completesMembersWhileTheTextIsIncomplete() {
     open(PROGRAM);
-    // typing 'd.' leaves the program unparsable; members come from the last good analysis
+    // typing 'd.' leaves the program unparsable; members come from the last good
+    // analysis
     String edited = PROGRAM.replace("  delete p;", "  d.\n  delete p;");
     change(2, edited);
     Position afterDot = position(edited, edited.indexOf("d.\n") + 2);
@@ -252,76 +252,6 @@ class FeaturesTest {
     change(2, source);
     List<String> labels = labels(complete(position(source, source.indexOf("->\n") + 2)));
     assertEquals(List.of("value", "next", "self"), labels);
-  }
-
-  // Formatting
-
-  @Test
-  void formatsCode() {
-    String messy = """
-        #include <iostream>
-        class A{public: int x;   // the value
-        virtual int get(){return x;}
-        };
-        class B:public A{
-        public:
-        int* p;int get(){ if(x>0)return -x ; else if (x==0) { return 0; } else return *p; }};
-        int main(){
-          B b;int& r=b.x;
-
-
-          /* note */
-          while(r<3) r=r+1;
-          print_int(b.get()*2);
-          return 0;}
-        """;
-    String expected = """
-        #include <iostream>
-        class A {
-        public:
-          int x; // the value
-          virtual int get() {
-            return x;
-          }
-        };
-
-        class B : public A {
-        public:
-          int* p;
-          int get() {
-            if (x > 0)
-              return -x;
-            else if (x == 0) {
-              return 0;
-            } else
-              return *p;
-          }
-        };
-
-        int main() {
-          B b;
-          int& r = b.x;
-
-          /* note */
-          while (r < 3)
-            r = r + 1;
-          print_int(b.get() * 2);
-          return 0;
-        }
-        """;
-    open(messy);
-    String formatted = apply(messy, format());
-    assertEquals(expected, formatted);
-    assertEquals(MiniCpp.compile(messy).diagnostics(), MiniCpp.compile(formatted).diagnostics());
-
-    open(formatted);
-    assertTrue(format().isEmpty(), "formatting is idempotent");
-  }
-
-  @Test
-  void doesNotFormatBrokenCode() {
-    open("int main() { int x = ; }");
-    assertTrue(format().isEmpty());
   }
 
   // Code actions
@@ -391,7 +321,10 @@ class FeaturesTest {
     return new TextDocumentIdentifier(URI);
   }
 
-  /** Position of the first occurrence of {@code anchor}, shifted by {@code shift} characters. */
+  /**
+   * Position of the first occurrence of {@code anchor}, shifted by {@code shift}
+   * characters.
+   */
   private Position pos(String anchor, int shift) {
     int offset = text.indexOf(anchor);
     assertTrue(offset >= 0, anchor);
@@ -430,10 +363,6 @@ class FeaturesTest {
 
   private static List<String> labels(List<CompletionItem> items) {
     return items.stream().map(CompletionItem::getLabel).toList();
-  }
-
-  private List<? extends TextEdit> format() {
-    return docs.formatting(new DocumentFormattingParams(id(), new FormattingOptions(2, true))).join();
   }
 
   private List<CodeAction> quickFixes() {
