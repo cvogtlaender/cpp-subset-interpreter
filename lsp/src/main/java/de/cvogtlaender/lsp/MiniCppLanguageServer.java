@@ -50,7 +50,6 @@ public class MiniCppLanguageServer implements LanguageServer, LanguageClientAwar
     capabilities.setDocumentHighlightProvider(true);
     capabilities.setDocumentSymbolProvider(true);
     capabilities.setRenameProvider(new RenameOptions(true));
-    capabilities.setDocumentFormattingProvider(true);
     capabilities.setCodeActionProvider(new CodeActionOptions(List.of(CodeActionKind.QuickFix)));
 
     return CompletableFuture.completedFuture(

@@ -25,7 +25,6 @@ public final class Tokens {
     return tokens.size();
   }
 
-  /** The token at {@code index}, or null if out of range. */
   public Token get(int index) {
     return index >= 0 && index < tokens.size() ? tokens.get(index) : null;
   }
@@ -38,16 +37,11 @@ public final class Tokens {
     return token.getStopIndex() + 1;
   }
 
-  /** Index of the token starting exactly at {@code offset}, or -1. */
   public int indexStartingAt(int offset) {
     int i = firstEndingAfter(offset);
     return i < tokens.size() && start(tokens.get(i)) == offset ? i : -1;
   }
 
-  /**
-   * Index of the identifier under the cursor: the one containing
-   * {@code offset} or ending right before it. -1 if there is none.
-   */
   public int identifierAt(int offset) {
     int i = firstEndingAfter(offset);
     if (i < tokens.size() && start(tokens.get(i)) <= offset && isIdentifier(tokens.get(i))) {
@@ -59,7 +53,6 @@ public final class Tokens {
     return -1;
   }
 
-  /** Index of the last token ending at or before {@code offset}, or -1. */
   public int lastEndingAtOrBefore(int offset) {
     return firstEndingAfter(offset) - 1;
   }
@@ -68,7 +61,6 @@ public final class Tokens {
     return token != null && token.getType() == MiniCppLexer.Identifier;
   }
 
-  // binary search for the first token whose end lies after offset
   private int firstEndingAfter(int offset) {
     int low = 0;
     int high = tokens.size();

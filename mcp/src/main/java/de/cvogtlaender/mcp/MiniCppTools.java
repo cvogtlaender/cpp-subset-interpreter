@@ -14,15 +14,20 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
+import org.springframework.ai.mcp.annotation.McpResource;
+import org.springframework.ai.mcp.annotation.McpTool;
+import org.springframework.ai.mcp.annotation.McpTool.McpAnnotations;
+import org.springframework.ai.mcp.annotation.McpToolParam;
+import org.springframework.stereotype.Service;
+
 import de.cvogtlaender.interpreter.MiniCpp;
 import de.cvogtlaender.interpreter.ast.Program;
 import de.cvogtlaender.interpreter.diagnostic.Diagnostic;
+import io.modelcontextprotocol.spec.McpSchema.CallToolResult;
 
+@Service
 public class MiniCppTools {
 
-  /**
-   * Summary of the language, so that the model does not suggest unsupported C++.
-   */
   static final String LANGUAGE = """
       MiniC++ is a small subset of C++. It has exactly these features:
       - types bool, int, char, string, void; references T& (variables must be initialized, parameters)
@@ -88,7 +93,51 @@ public class MiniCppTools {
     return thread;
   });
 
-  public CheckResult check(String code) {
+  @McpTool(name = "check", title = "Check MiniC++ code", description = "Runs the MiniC++ compiler (parser, name resolution, type checker) and returns its diagnostics. "
+      + "Lines are 1-based, columns 0-based. 'int main()' is only required if the code defines a main function.", annotations = @McpAnnotations(readOnlyHint = true, destructiveHint = false, idempotentHint = true, openWorldHint = false))
+  public CallToolResult check(@McpToolParam(description = "MiniC++ source code") String code) {
+    return toolResult(checkCode(code));
+  }
+
+  @McpTool(name = "run", title = "Run a MiniC++ program", description = "Compiles and runs a complete MiniC++ program (with 'int main()' or 'void main()') in the "
+      + "interpreter and returns its output, exit code and compile or runtime errors (e.g. division by zero, "
+      + "null pointer dereference). Programs cannot read input. Execution is stopped after the time limit.", annotations = @McpAnnotations(readOnlyHint = true, destructiveHint = false, idempotentHint = true, openWorldHint = false))
+  public CallToolResult run(@McpToolParam(description = "MiniC++ program") String code,
+      @McpToolParam(required = false, description = "time limit in seconds, 1 to 60, default 10") Integer timeoutSeconds) {
+    if (timeoutSeconds == null) {
+      return toolResult(runCode(code, DEFAULT_TIMEOUT));
+    }
+    if (timeoutSeconds < 1 || timeoutSeconds > MAX_TIMEOUT.toSeconds()) {
+      return CallToolResult.builder()
+          .addTextContent("'timeoutSeconds' must be between 1 and " + MAX_TIMEOUT.toSeconds())
+          .isError(true)
+          .build();
+    }
+    return toolResult(runCode(code, Duration.ofSeconds(timeoutSeconds)));
+  }
+
+  @McpTool(name = "ast", title = "Show the MiniC++ syntax tree", description = "Parses MiniC++ code and returns its abstract syntax tree, or the syntax errors.", annotations = @McpAnnotations(readOnlyHint = true, destructiveHint = false, idempotentHint = true, openWorldHint = false))
+  public CallToolResult ast(@McpToolParam(description = "MiniC++ source code") String code) {
+    return toolResult(parseAst(code));
+  }
+
+  @McpResource(uri = "minicpp://language", name = "language", title = "MiniC++ language summary", description = "The C++ features MiniC++ supports, and those it does not", mimeType = "text/plain")
+  public String language() {
+    return LANGUAGE;
+  }
+
+  /**
+   * Text for the model, the record's fields as structured content for clients.
+   */
+  private static CallToolResult toolResult(Result result) {
+    return CallToolResult.builder()
+        .addTextContent(result.text())
+        .structuredContent(result)
+        .isError(false)
+        .build();
+  }
+
+  CheckResult checkCode(String code) {
     MiniCpp.ParseResult<Program> parsed = MiniCpp.parseProgram(code);
     if (parsed.hasErrors()) {
       return new CheckResult(false, parsed.diagnostics());
@@ -98,7 +147,7 @@ public class MiniCppTools {
     return new CheckResult(diagnostics.isEmpty(), diagnostics);
   }
 
-  public RunResult run(String code, Duration timeout) {
+  RunResult runCode(String code, Duration timeout) {
     MiniCpp.Compilation compilation = MiniCpp.compile(code);
     if (compilation.hasErrors()) {
       return new RunResult(false, null, "", false, false, compilation.diagnostics());
@@ -129,7 +178,7 @@ public class MiniCppTools {
     }
   }
 
-  public AstResult ast(String code) {
+  AstResult parseAst(String code) {
     MiniCpp.ParseResult<Program> parsed = MiniCpp.parseProgram(code);
     return parsed.hasErrors()
         ? new AstResult(null, parsed.diagnostics())
