@@ -1,6 +1,5 @@
 #include <iostream> // preprocessor lines are ignored
 
-// Classes may be used before their definition (and so may functions).
 class Account {
 public:
   string owner;
@@ -32,7 +31,6 @@ public:
   }
 
   void endOfMonth() {
-    // calls the override of the dynamic type
     balance = balance - monthlyFee();
   }
 };
@@ -49,7 +47,7 @@ public:
   }
 };
 
-// Overloading by exact parameter types
+// Überladung
 void show(int value) { print_int(value); }
 void show(bool value) { print_bool(value); }
 void show(string label, int value) {
@@ -58,7 +56,6 @@ void show(string label, int value) {
 }
 void show(Account& account) { show(account.owner, account.balance); }
 
-// Reference parameters modify the caller's variables
 void transfer(Account& from, Account& to, int amount) {
   if (from.withdraw(amount)) {
     to.deposit(amount);
@@ -87,15 +84,12 @@ int main() {
   show(alice.balance);
   show(bob.balance);
 
-  // polymorphism
   Account& any = bob;
   show(any.monthlyFee());
 
-  // assigning a derived object to a base object slices it
   Account copy = bob;
   show(copy.monthlyFee());
 
-  // pointers: address-of, '->' (with dynamic dispatch), heap objects
   Account* ptr = &bob;
   ptr->deposit(5);
   show(bob.balance);
